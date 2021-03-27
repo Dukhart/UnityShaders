@@ -4,7 +4,7 @@ Shader "Unlit/TruchetTiling3"
     {
         _MainColor ("Color", Color) = (1,1,1,1)
         _MainTex("Texture", 2D) = "white" {}
-        _BGColor("Color", Color) = (1,1,1,1)
+        _BGColor("BG Color", Color) = (1,1,1,1)
         _BGTex("Background Texture", 2D) = "white" {}
         _Width("Line Width", Float) = .1
         _Fade("Line Fade", Float) = .1
@@ -80,7 +80,7 @@ Shader "Unlit/TruchetTiling3"
                     // draws face edges
                     //if (gv.x > .48 || gv.y > .48) col += fixed4(1, 0, 0, 1);
                     //col.rg += gv;
-                    float width = _Width * -uv.y;
+                    float width = _Width;
                     n = sin(n * 6.2831 + time * _Speed);
                     //flip direction based on random number
                     if (n < .5) gv.x *= -1;

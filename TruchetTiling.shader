@@ -3,6 +3,8 @@ Shader "Unlit/TruchetTiling"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _MainColor("Color", Color) = (1,1,1,1)
+        _BGColor("BG Color", Color) = (1,1,1,1)
         _Width("Line Width", Float) = .1
         _Fade("Line Fade", Float) = .1
         _Size("Size", Float) = 10
@@ -38,7 +40,7 @@ Shader "Unlit/TruchetTiling"
             };
 
             sampler2D _MainTex;
-            float4 _MainTex_ST;
+            float4 _MainTex_ST, _MainColor, _BGColor;
             float _Width, _Size, _Speed, _Fade, _TimeOffset;
 
             float Hash21(float2 val) {
@@ -62,8 +64,8 @@ Shader "Unlit/TruchetTiling"
                 float time = fmod(_Time.y, 7200);
                 time += _TimeOffset;
                 // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
-                col = 0; // init black
+                fixed4 col = tex2D(_MainTex, i.uv) * _BGColor;
+                //col = 0; // init black
                 float2 uv = i.uv - 0.5;
                 float gridSize = _Size;
                 float2 gv = frac(uv * gridSize) - 0.5;
@@ -84,11 +86,7 @@ Shader "Unlit/TruchetTiling"
                 // mask for our lines
                 float mask = smoothstep(_Fade, -_Fade, dist-width);
 
-                col += mask;
-                //col.rg += id*0.3;
-                //col += n;
-                // apply fog
-                //UNITY_APPLY_FOG(i.fogCoord, col);
+                col += mask * _MainColor;
                 return col;
             }
             ENDCG
