@@ -4,9 +4,10 @@ Shader "Unlit/RayMarch3"
     {
         _Color("Color", Color) = (1,1,1,1)
         _MainTex("Texture", 2D) = "white" {}
-        _RayMarchColor("Color", Color) = (1,1,1,1)
-        _RayMarchTex("_RayMarchTex", 2D) = "white" {}
-        _Operation("Mode", Range(0,3)) = 0
+        _RayMarchColor1("RayMarchColor", Color) = (1,1,1,1)
+        _RayMarchColor2("RayMarchColor2", Color) = (1,1,1,1)
+        _RayMarchTex("RayMarchTex", 2D) = "white" {}
+        _Operation("Mode", Range(0,4)) = 0
         _ShapeA("ShapeA", Range(0,4)) = 0
         _OffsetA("Offset A", Vector) = (0,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
@@ -63,7 +64,7 @@ Shader "Unlit/RayMarch3"
                 float _SurfDist;
                 float3 _ShapeSizeA, _ShapeSizeB;
                 float3 _OffsetA, _RotationA, _ScaleA, _OffsetB, _RotationB, _ScaleB;
-                float4 _MainTex_ST, _Color, _RayMarchColor;
+                float4 _MainTex_ST, _Color, _RayMarchColor1, _RayMarchColor2;
 
                 int _MaxDist, _MaxSteps, _ShapeA, _ShapeB, _Operation;
 
@@ -222,9 +223,9 @@ Shader "Unlit/RayMarch3"
 
 
 
-                float RayMarch(float3 rayOrigin, float3 rayDir, int shapeA, int shapeB) {
+                float2 RayMarch(float3 rayOrigin, float3 rayDir, int shapeA, int shapeB) {
                     float distOrigin = 0;
-                    float distScurface, distScurface1, distScurface2;
+                    float distSurface, distSurface1, distSurface2, colLerp;
                     for (int i = 0; i < _MaxSteps; i++)
                     {
                         // get the ray marching point
@@ -232,28 +233,61 @@ Shader "Unlit/RayMarch3"
                         float3 p1 = ApplyPointProps(p,_OffsetA, _RotationA, _ScaleA);
                         float3 p2 = ApplyPointProps(p, _OffsetB, _RotationB, _ScaleB);
                         // get the distance to the surface from the ray marching point
-                        distScurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
-                        distScurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
+                        distSurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
+                        distSurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
 
-                        if (_Operation == 0)
-                            distScurface = unionSDF(distScurface1, distScurface2);
-                        else if (_Operation == 1)
-                            distScurface = intersectSDF(distScurface1, distScurface2);
-                        else if (_Operation == 2)
-                            distScurface = differenceSDF(distScurface1, distScurface2);
-                        else if (_Operation == 3)
-                            distScurface = smoothUnionSDF(distScurface1, distScurface2, (_ShapeSizeA.z + _ShapeSizeB.z) * .5);
-                        else distScurface = min(distScurface1, distScurface2);
+                        
+                        if (_Operation == 0) {
+                            distSurface = unionSDF(distSurface1, distSurface2);
+                            colLerp = distSurface == distSurface1 ? 0 : 1;
+                        }
+                        else if (_Operation == 1) {
+                            distSurface = intersectSDF(distSurface1, distSurface2);
+                            colLerp = distSurface == distSurface1 ? 0 : 1;
+                        }
+                        else if (_Operation == 2) {
+                            distSurface = differenceSDF(distSurface1, distSurface2);
+                            colLerp = distSurface == distSurface1 ? 0 : 1;
+                        }                           
+                        else if (_Operation == 3) {
+                            float t = (_ShapeSizeA.z + _ShapeSizeB.z) * 0.05;
+                            float v = 0.01;
+                            distSurface = smoothUnionSDF(distSurface1, distSurface2, t);
+
+                            float2 d = float2(distSurface + v, distSurface - v);
+
+                            if (distSurface1 > d.y && distSurface1 < d.x) colLerp = 0;
+                            else if (distSurface2 > d.y && distSurface2 < d.x) colLerp = 1;
+                            else {
+                                float d1 = distSurface1 - distSurface;
+                                float d2 = distSurface2 - distSurface;
+                                if (d1 < d2)
+                                    colLerp = 0 + d1;
+                                else
+                                    colLerp = 1 - d2;
+                            }
+                        }
+                        else if (_Operation == 4) {
+                            float t = sin(mod(_Time.y * ((_ShapeSizeA.z + _ShapeSizeB.z) * .5), 7200)) * .5 + .5;
+                            distSurface = lerp(distSurface1, distSurface2, t);
+                            if (distSurface == distSurface1) colLerp = 0;
+                            else if (distSurface == distSurface2) colLerp = 1;
+                            else colLerp = t;
+                        }                           
+                        else {
+                            distSurface = min(distSurface1, distSurface2);
+                            colLerp = distSurface == distSurface1 ? 0 : 1;
+                        }
 
                         // move our origin by surface distance
-                        distOrigin += distScurface;
-                        // if distScurface < _SurfDist we hit something, 
+                        distOrigin += distSurface;
+                        // if distSurface < _SurfDist we hit something, 
                         // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
-                        if (distScurface < _SurfDist || distOrigin > _MaxDist) {
+                        if (distSurface < _SurfDist || distOrigin > _MaxDist) {
                             break;
                         }
                     }
-                    return distOrigin;
+                    return float2(distOrigin, colLerp);
                 }
 
                 fixed4 frag(v2f i) : SV_Target
@@ -268,13 +302,14 @@ Shader "Unlit/RayMarch3"
                     float3 rayOrigin = i.rayOrigin;
                     // 
                     float3 rayDir = normalize(i.hitPos - rayOrigin);
-                    float dist = RayMarch(rayOrigin, rayDir, _ShapeA, _ShapeB);
+                    float2 rm = RayMarch(rayOrigin, rayDir, _ShapeA, _ShapeB);
+                    float dist = rm.x;
 
 
                     if (dist < _MaxDist) {
                         float3 p = GetPoint(rayOrigin, dist, rayDir);
                         //float3 n = GetNormal(p, _ShapeA, _ShapeB);
-                        col += tex2D(_RayMarchTex, i.uv) * _RayMarchColor;
+                        col = tex2D(_RayMarchTex, i.uv) * lerp(_RayMarchColor1, _RayMarchColor2, rm.y);
                     }
 
                     col = lerp(col, tex, smoothstep(.1, .2, mask));

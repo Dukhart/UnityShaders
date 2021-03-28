@@ -2,7 +2,10 @@ Shader "Unlit/RayMarch"
 {
     Properties
     {
+        _Color("Color", Color) = (1,1,1,1)
         _MainTex("Texture", 2D) = "white" {}
+        _RayMarchColor("RayMarchColor", Color) = (1,1,1,1)
+        _RayMarchTex("RayMarchTex", 2D) = "white" {}
         _Offset("Offset", Vector) = (0,0,0,0)
         _Rotation("Rotation", Vector) = (0,0,0,0)
         _Scale("Scale", Vector) = (1,1,1,1)
@@ -47,10 +50,10 @@ Shader "Unlit/RayMarch"
                     float4 grabUV : TEXCOORD3;
                 };
 
-                sampler2D _MainTex, _GrabTexture;
+                sampler2D _MainTex, _GrabTexture, _RayMarchTex;
                 float _SurfDist, _ShapeSize1, _ShapeSize2;
                 float3 _Offset, _Rotation, _Scale;
-                float4 _MainTex_ST;
+                float4 _MainTex_ST, _Color, _RayMarchColor;
                 int _MaxDist, _MaxSteps, _Shape;
 
 
@@ -204,7 +207,7 @@ Shader "Unlit/RayMarch"
 
                 fixed4 frag(v2f i) : SV_Target
                 {
-                    fixed4 tex = tex2D(_MainTex, i.uv);
+                    fixed4 tex = tex2D(_MainTex, i.uv) * _Color;
                     fixed4 col = tex2D(_GrabTexture, i.grabUV.xy / i.grabUV.w);
 
                     // -0.5 to center uv on each face
@@ -218,8 +221,8 @@ Shader "Unlit/RayMarch"
 
                     if (dist < _MaxDist) {
                         float3 p = GetPoint(rayOrigin, dist, rayDir);
-                        float3 n = GetNormal(p, _Shape);
-                        col.rgb = n;
+                        //float3 n = GetNormal(p, _Shape);
+                        col.rgb = tex2D(_RayMarchTex, i.uv) * _RayMarchColor;
                     }
 
                     col = lerp(col, tex, smoothstep(.1, .2, mask));

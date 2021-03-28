@@ -55,6 +55,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _RayMarchTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Floats:
     - _BumpScale: 1
     - _Cutoff: 0.5
@@ -68,8 +72,11 @@ Material:
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
+    - _Operation: 3.36
     - _Parallax: 0.02
     - _Shape: 0
+    - _ShapeA: 2.78
+    - _ShapeB: 0
     - _ShapeSize1: 0.3
     - _ShapeSize2: 0.2
     - _SmoothnessTextureChannel: 0
@@ -82,5 +89,16 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Offset: {r: 0, g: 0, b: 0, a: 0}
+    - _OffsetA: {r: -0.3, g: 0, b: 0, a: 0}
+    - _OffsetB: {r: 0, g: 0, b: 0, a: 0}
+    - _RayMarchColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RayMarchColor1: {r: 0, g: 0.016898155, b: 1, a: 1}
+    - _RayMarchColor2: {r: 1, g: 0, b: 0, a: 1}
     - _Rotation: {r: 0, g: 0, b: 0, a: 0}
+    - _RotationA: {r: 0, g: 0, b: 0, a: 0}
+    - _RotationB: {r: 0, g: 0, b: 0, a: 0}
+    - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
+    - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
+    - _ShapeSizeA: {r: 0.2, g: 0.1, b: -0.24, a: 0.1}
+    - _ShapeSizeB: {r: 0.2, g: 0.1, b: 0.49, a: 0.1}
   m_BuildTextureStacks: []
