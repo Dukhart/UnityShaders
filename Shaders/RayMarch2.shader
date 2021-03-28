@@ -2,8 +2,12 @@ Shader "Unlit/RayMarch2"
 {
     Properties
     {
+        _Color("Color", Color) = (1,1,1,1)
         _MainTex("Texture", 2D) = "white" {}
-         _ShapeA("ShapeA", Range(0,4)) = 0
+        _RayMarchColor("Color", Color) = (1,1,1,1)
+        _RayMarchTex("_RayMarchTex", 2D) = "white" {}
+        _Operation("Mode", Range(0,3)) = 0
+        _ShapeA("ShapeA", Range(0,4)) = 0
         _OffsetA("Offset A", Vector) = (0,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
         _ScaleA("Scale A", Vector) = (1,1,1,1)
@@ -55,13 +59,13 @@ Shader "Unlit/RayMarch2"
                     float4 grabUV : TEXCOORD3;
                 };
 
-                sampler2D _MainTex, _GrabTexture;
+                sampler2D _MainTex, _GrabTexture, _RayMarchTex;
                 float _SurfDist;
-                float2 _ShapeSizeA, _ShapeSizeB;
+                float3 _ShapeSizeA, _ShapeSizeB;
                 float3 _OffsetA, _RotationA, _ScaleA, _OffsetB, _RotationB, _ScaleB;
-                float4 _MainTex_ST;
+                float4 _MainTex_ST, _Color, _RayMarchColor;
 
-                int _MaxDist, _MaxSteps, _ShapeA, _ShapeB;
+                int _MaxDist, _MaxSteps, _ShapeA, _ShapeB, _Operation;
                 
 
                 v2f vert(appdata v)
@@ -145,6 +149,12 @@ Shader "Unlit/RayMarch2"
                 float unionSDF(float distA, float distB) {
                     return min(distA, distB);
                 }
+                float smoothUnionSDF(float distA, float distB, float amount) {
+                    if (amount == 0) return min(distA, distB);
+                    float h = clamp(0.5 + 0.5 * (distB - distA) / amount, 0, 1);
+                    return lerp(distB, distA, h) - amount * h * (1 - h);
+                }
+
                 float differenceSDF(float distA, float distB) {
                     return max(distA, -distB);
                 }
@@ -224,9 +234,17 @@ Shader "Unlit/RayMarch2"
                         // get the distance to the surface from the ray marching point
                         distScurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
                         distScurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
-                        
 
-                        distScurface = min(distScurface1, distScurface2);
+                        if (_Operation == 0)
+                            distScurface = unionSDF(distScurface1, distScurface2);
+                        else if (_Operation == 1)
+                            distScurface = intersectSDF(distScurface1, distScurface2);
+                        else if (_Operation == 2)
+                            distScurface = differenceSDF(distScurface1, distScurface2);
+                        else if (_Operation == 3)
+                            distScurface = smoothUnionSDF(distScurface1, distScurface2, (_ShapeSizeA.z+ _ShapeSizeB.z)*.5);
+                        else distScurface = min(distScurface1, distScurface2);
+
                         // move our origin by surface distance
                         distOrigin += distScurface;
                         // if distScurface < _SurfDist we hit something, 
@@ -240,7 +258,7 @@ Shader "Unlit/RayMarch2"
 
                 fixed4 frag(v2f i) : SV_Target
                 {
-                    fixed4 tex = tex2D(_MainTex, i.uv);
+                    fixed4 tex = tex2D(_MainTex, i.uv) * _Color;
                     fixed4 col = tex2D(_GrabTexture, i.grabUV.xy / i.grabUV.w);
 
                     // -0.5 to center uv on each face
@@ -255,8 +273,8 @@ Shader "Unlit/RayMarch2"
 
                     if (dist < _MaxDist) {
                         float3 p = GetPoint(rayOrigin, dist, rayDir);
-                        float3 n = GetNormal(p, _ShapeA, _ShapeB);
-                        col.rgb = n;
+                        //float3 n = GetNormal(p, _ShapeA, _ShapeB);
+                        col += tex2D(_RayMarchTex, i.uv) * _RayMarchColor;
                     }
 
                     col = lerp(col, tex, smoothstep(.1, .2, mask));

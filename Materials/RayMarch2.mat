@@ -23,26 +23,33 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _RayMarchTex:
+        m_Texture: {fileID: 2800000, guid: 2e7049350280f7844be1adbc5b736020, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Floats:
     - _MaxDist: 1000
     - _MaxSteps: 100
+    - _Operation: 3
     - _ShapeA: 1.58
-    - _ShapeB: 0
+    - _ShapeB: 4
     - _ShapeSize1: 0.2
     - _ShapeSize2: 0.1
     - _ShapeSizeA1: 0.3
     - _ShapeSizeA2: 0.2
     - _SurfDist: 0.01
     m_Colors:
+    - _Color: {r: 0.9339623, g: 0.7004717, b: 0.7004717, a: 1}
     - _Offset: {r: 0, g: 0, b: 0, a: 0}
-    - _OffsetA: {r: -0.1, g: 0, b: 0, a: 0}
+    - _OffsetA: {r: -0.1, g: -0.04, b: 0, a: 0}
     - _OffsetB: {r: 0.21, g: 0, b: 0, a: 0}
+    - _RayMarchColor: {r: 1, g: 0, b: 0, a: 1}
     - _Rotation: {r: 0, g: 0, b: 0, a: 0}
     - _RotationA: {r: 0, g: 0, b: 0, a: 0}
     - _RotationB: {r: 1.83, g: 0, b: 0, a: 0}
     - _Scale: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
-    - _ShapeSizeA: {r: 0.24, g: 0.1, b: 0.1, a: 0.1}
-    - _ShapeSizeB: {r: 0.23, g: 0.1, b: 0.1, a: 0.1}
+    - _ShapeSizeA: {r: 0.24, g: 0.1, b: 0.1, a: 0}
+    - _ShapeSizeB: {r: 0.23, g: 0.1, b: 0, a: 0}
   m_BuildTextureStacks: []
