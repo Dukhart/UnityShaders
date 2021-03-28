@@ -5,10 +5,10 @@ Shader "Unlit/RayMarch"
         _MainTex ("Texture", 2D) = "white" {}
         _MaxDist("Ray Distance", int) = 1000
         _MaxSteps("Ray Steps", int) = 100
-        _SurfDist("Surface Distance", Float) = 0.001
-        _Shape("Shape", Range(0,3)) = 0
-        _ShapeSize1("Size", Float) = 0.5
-        _ShapeSize2("Size", Float) = 0.5
+        _SurfDist("Surface Distance", Float) = 0.01
+        _Shape("Shape", Range(0,4)) = 0
+        _ShapeSize1("Size", Float) = 0.3
+        _ShapeSize2("Size", Float) = 0.2
     }
     SubShader
     {
@@ -88,7 +88,23 @@ Shader "Unlit/RayMarch"
                 float3 c = a + t * ab;
                 return length(p - c) * radius;
             }
-            
+            float cylinderSDF(float3 p, float radius, float height) {
+                float3 a = float3(0, -height * 0.5, 0);
+                float3 b = float3(0, 1 * height, 0);
+                float3 ab = b - a;
+                float3 ap = p - a;
+                // cylinder
+                float t = dot(ab, ap) / dot(ab, ab);
+                float3 c = a + t * ab;
+                
+                float x = length(p - c) * radius;
+                float y = (abs(t - 0.5) - 0.5) * length(ab);
+                // exterior
+                float e = length(max(float2(x, y), 0));
+                // interior
+                float i = min(max(x, y), 0);
+                return e + i;
+            }
             // operations
             float intersectSDF(float distA, float distB) {
                 return max(distA, distB);
@@ -104,16 +120,17 @@ Shader "Unlit/RayMarch"
             float GetDist(float3 p, int shape) {
                 // scene shape goes here
                 if (shape == 0) return sphereSDF(p, _ShapeSize1);
-                else if (shape == 1) return torusSDF(p, _ShapeSize1, _ShapeSize2);
-                else if (shape == 2) return capsuleSDF(p, _ShapeSize1, _ShapeSize2);
-                else if (shape == 3) return squareSDF(p, _ShapeSize1);
+                else if (shape == 1) return squareSDF(p, _ShapeSize1);
+                else if (shape == 2) return torusSDF(p, _ShapeSize1, _ShapeSize2);
+                else if (shape == 3) return capsuleSDF(p, _ShapeSize1, _ShapeSize2);
+                else if (shape == 4) return cylinderSDF(p, _ShapeSize1, _ShapeSize2);
+                
                 // backup
                 float dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // = circle of radius 0.5 uv
                 return dist;
             }
 
-            
-
+            // calculates the normal at a point of given shape
             float3 GetNormal(float3 p, int shape) {
                 float2 e = float2(0.01f, 0);
                 float3 n = GetDist(p,shape) - float3(
@@ -123,9 +140,12 @@ Shader "Unlit/RayMarch"
                     );
                 return normalize(n);
             }
+
+            // get the point on the ray
             float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir) {
                 return rayOrigin + distOrigin * rayDir;
             }
+
             float RayMarch(float3 rayOrigin, float3 rayDir, int shape) {
                 float distOrigin = 0;
                 float distScurface;
