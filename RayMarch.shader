@@ -6,6 +6,9 @@ Shader "Unlit/RayMarch"
         _MaxDist("Ray Distance", int) = 1000
         _MaxSteps("Ray Steps", int) = 100
         _SurfDist("Surface Distance", Float) = 0.001
+        _Shape("Shape", Range(0,3)) = 0
+        _ShapeSize1("Size", Float) = 0.5
+        _ShapeSize2("Size", Float) = 0.5
     }
     SubShader
     {
@@ -43,9 +46,8 @@ Shader "Unlit/RayMarch"
 
             sampler2D _MainTex, _GrabTexture;
             float4 _MainTex_ST;
-            int _MaxDist;
-            int _MaxSteps;
-            float _SurfDist;
+            int _MaxDist, _MaxSteps, _Shape;
+            float _SurfDist, _ShapeSize1, _ShapeSize2;
 
             v2f vert (appdata v)
             {
@@ -63,48 +65,68 @@ Shader "Unlit/RayMarch"
                 return o;
             }
 
-            float intersectSDF(float distA, float distB) {
-                return max(distA, distB);
+            // shapes
+            float squareSDF(float3 p, float size) {
+                return length(max(abs(p) - size,0));
+                //return 0.1;
             }
-
-            float unionSDF(float distA, float distB) {
-                return min(distA, distB);
-            }
-
-            float differenceSDF(float distA, float distB) {
-                return max(distA, -distB);
-            }
-
-            // calculates the distance from ray point to surface
-            float GetDist(float3 p) {
-                // scene shape goes here
-                //float dist = length(p) - 0.5; // = circle of radius 0.5 uv
-                //float dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // = circle of radius 0.5 uv
-                //float dist = length(float2(length(p.xz) - 0.5f, p.y)) - 0.1f;
-                float dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // = circle of radius 0.5 uv
-                return dist;
-            }
-
             float sphereSDF(float3 p, float size) {
                 return length(p) - size;
             }
             float torusSDF(float3 p, float sizeA, float sizeB) {
                 return length(float2(length(p.xz) - sizeA, p.y)) - sizeB;
             }
+            float capsuleSDF(float3 p, float radius, float height) {
+                float3 a = float3(0,-height*0.5,0);
+                float3 b = float3(0, 1*height, 0);
+                float3 ab = b - a;
+                float3 ap = p - a;
 
-            float3 GetNormal(float3 p) {
+                float t = dot(ab, ap) / dot(ab, ab);
+                t = clamp(t, 0, 1);
+
+                float3 c = a + t * ab;
+                return length(p - c) * radius;
+            }
+            
+            // operations
+            float intersectSDF(float distA, float distB) {
+                return max(distA, distB);
+            }
+            float unionSDF(float distA, float distB) {
+                return min(distA, distB);
+            }
+            float differenceSDF(float distA, float distB) {
+                return max(distA, -distB);
+            }
+
+            // calculates the distance from ray point to surface
+            float GetDist(float3 p, int shape) {
+                // scene shape goes here
+                if (shape == 0) return sphereSDF(p, _ShapeSize1);
+                else if (shape == 1) return torusSDF(p, _ShapeSize1, _ShapeSize2);
+                else if (shape == 2) return capsuleSDF(p, _ShapeSize1, _ShapeSize2);
+                else if (shape == 3) return squareSDF(p, _ShapeSize1);
+                // backup
+                float dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // = circle of radius 0.5 uv
+                return dist;
+            }
+
+            
+
+            float3 GetNormal(float3 p, int shape) {
                 float2 e = float2(0.01f, 0);
-                float3 n = GetDist(p) - float3(
-                    GetDist(p - e.xyy),
-                    GetDist(p - e.yxy),
-                    GetDist(p - e.yyx)
+                float3 n = GetDist(p,shape) - float3(
+                    GetDist(p - e.xyy, shape),
+                    GetDist(p - e.yxy, shape),
+                    GetDist(p - e.yyx, shape)
                     );
                 return normalize(n);
             }
             float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir) {
                 return rayOrigin + distOrigin * rayDir;
             }
-            float RayMarch(float3 rayOrigin, float3 rayDir) {
+            float RayMarch(float3 rayOrigin, float3 rayDir, int shape) {
                 float distOrigin = 0;
                 float distScurface;
                 for (int i = 0; i < _MaxSteps; i++)
@@ -112,7 +134,7 @@ Shader "Unlit/RayMarch"
                     // get the ray marching point
                     float3 p = GetPoint(rayOrigin, distOrigin, rayDir);
                     // get the distance to the surface from the ray marching point
-                    distScurface = GetDist(p);
+                    distScurface = GetDist(p, shape);
                     // move our origin by surface distance
                     distOrigin += distScurface;
                     // if distScurface < _SurfDist we hit something, 
@@ -136,11 +158,11 @@ Shader "Unlit/RayMarch"
                 float3 rayOrigin = i.rayOrigin;
                 // 
                 float3 rayDir = normalize(i.hitPos - rayOrigin);
-                float dist = RayMarch(rayOrigin, rayDir);
+                float dist = RayMarch(rayOrigin, rayDir, _Shape);
 
                 if (dist < _MaxDist) {
                     float3 p = GetPoint(rayOrigin, dist, rayDir);
-                    float3 n = GetNormal(p);
+                    float3 n = GetNormal(p, _Shape);
                     col.rgb = n;
                 }
 
