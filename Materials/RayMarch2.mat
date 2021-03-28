@@ -26,21 +26,23 @@ Material:
     m_Floats:
     - _MaxDist: 1000
     - _MaxSteps: 100
-    - _ShapeA: 0
+    - _ShapeA: 1.58
     - _ShapeB: 0
-    - _ShapeSize1: 0.3
-    - _ShapeSize2: 0.2
+    - _ShapeSize1: 0.2
+    - _ShapeSize2: 0.1
     - _ShapeSizeA1: 0.3
     - _ShapeSizeA2: 0.2
     - _SurfDist: 0.01
     m_Colors:
     - _Offset: {r: 0, g: 0, b: 0, a: 0}
-    - _OffsetA: {r: -0.25, g: 0, b: 0, a: 0}
+    - _OffsetA: {r: -0.1, g: 0, b: 0, a: 0}
     - _OffsetB: {r: 0.21, g: 0, b: 0, a: 0}
     - _Rotation: {r: 0, g: 0, b: 0, a: 0}
     - _RotationA: {r: 0, g: 0, b: 0, a: 0}
-    - _RotationB: {r: 0, g: 0, b: 0, a: 0}
+    - _RotationB: {r: 1.83, g: 0, b: 0, a: 0}
     - _Scale: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
+    - _ShapeSizeA: {r: 0.24, g: 0.1, b: 0.1, a: 0.1}
+    - _ShapeSizeB: {r: 0.23, g: 0.1, b: 0.1, a: 0.1}
   m_BuildTextureStacks: []

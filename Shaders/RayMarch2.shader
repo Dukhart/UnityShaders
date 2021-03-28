@@ -7,16 +7,16 @@ Shader "Unlit/RayMarch2"
         _OffsetA("Offset A", Vector) = (0,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
         _ScaleA("Scale A", Vector) = (1,1,1,1)
-        _ShapeSize1("Size", Float) = 0.3
-        _ShapeSize2("Size", Float) = 0.2
+        _ShapeSizeA("Size A", Vector) = (.2,.1,.1,.1)
+        //ShapeSize1("Size", Float) = 0.3
+        //_ShapeSize2("Size", Float) = 0.2
         
         _ShapeB("ShapeB", Range(0,4)) = 0
         _OffsetB("Offset B", Vector) = (0,0,0,0)
         _RotationB("Rotation B", Vector) = (0,0,0,0)
         _ScaleB("Scale B", Vector) = (1,1,1,1)
-        //_ShapeSize1("Size", Float) = 0.3
-        //_ShapeSize2("Size", Float) = 0.2
-        
+        _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
+
         _MaxDist("Ray Distance", int) = 1000
         _MaxSteps("Ray Steps", int) = 100
         _SurfDist("Surface Distance", Float) = 0.01
@@ -56,9 +56,11 @@ Shader "Unlit/RayMarch2"
                 };
 
                 sampler2D _MainTex, _GrabTexture;
-                float _SurfDist, _ShapeSize1, _ShapeSize2;
+                float _SurfDist;
+                float2 _ShapeSizeA, _ShapeSizeB;
                 float3 _OffsetA, _RotationA, _ScaleA, _OffsetB, _RotationB, _ScaleB;
                 float4 _MainTex_ST;
+
                 int _MaxDist, _MaxSteps, _ShapeA, _ShapeB;
                 
 
@@ -146,33 +148,6 @@ Shader "Unlit/RayMarch2"
                 float differenceSDF(float distA, float distB) {
                     return max(distA, -distB);
                 }
-
-                // calculates the distance from ray point to surface
-                float GetDist(float3 p, int shape, float3 scale) {
-                    float dist = 0;
-                    // scene shape goes here
-                    if (shape == 0) dist = sphereSDF(p, _ShapeSize1);
-                    else if (shape == 1) dist = squareSDF(p, _ShapeSize1);
-                    else if (shape == 2) dist = torusSDF(p, _ShapeSize1, _ShapeSize2);
-                    else if (shape == 3) dist = capsuleSDF(p, _ShapeSize1, _ShapeSize2);
-                    else if (shape == 4) dist = cylinderSDF(p, _ShapeSize1, _ShapeSize2);
-                    else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
-                    // compensate for scale
-                    dist = dist / max(max(scale.x, scale.y), scale.z);
-                    return dist;
-                }
-
-                // calculates the normal at a point of given shape
-                float3 GetNormal(float3 p, int shape, float3 scale) {
-                    float2 e = float2(0.01f, 0);
-                    float3 n = GetDist(p,shape, scale) - float3(
-                        GetDist(p - e.xyy, shape, scale),
-                        GetDist(p - e.yxy, shape, scale),
-                        GetDist(p - e.yyx, shape, scale)
-                        );
-                    return normalize(n);
-                }
-
                 // get the point on the ray
                 float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir) {
                     // get the point on the ray
@@ -192,6 +167,51 @@ Shader "Unlit/RayMarch2"
                     //return
                     return p;
                 }
+                // calculates the distance from ray point to surface
+                float GetDist(float3 p, int shape, float3 scale, float2 size) {
+                    float dist = 0;
+                    // scene shape goes here
+                    if (shape == 0) dist = sphereSDF(p, size.x);
+                    else if (shape == 1) dist = squareSDF(p, size.x);
+                    else if (shape == 2) dist = torusSDF(p, size.x, size.y);
+                    else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);
+                    else if (shape == 4) dist = cylinderSDF(p, size.x, size.y);
+                    else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
+                    // compensate for scale
+                    dist = dist / max(max(scale.x, scale.y), scale.z);
+                    return dist;
+                }
+                
+                // calculates the normal at a point of given shape
+                float3 GetNormal(float3 p, int shapeA, int shapeB) {
+                    float2 e = float2(0.01f, 0);
+                    float3 n;
+
+                    float3 p1 = ApplyPointProps(p, _OffsetA, _RotationA, _ScaleA);
+                    float3 p2 = ApplyPointProps(p, _OffsetB, _RotationB, _ScaleB);
+                    float d1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
+                    float d2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
+
+                    if (min(d1, d2) == d1) {
+                        n = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA) - float3(
+                            GetDist(p1 - e.xyy, shapeA, _ScaleA, _ShapeSizeA),
+                            GetDist(p1 - e.yxy, shapeA, _ScaleA, _ShapeSizeA),
+                            GetDist(p1 - e.yyx, shapeA, _ScaleA, _ShapeSizeA)
+                            );
+                    }
+                    else {
+                        n = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB) - float3(
+                            GetDist(p2 - e.xyy, shapeB, _ScaleB, _ShapeSizeB),
+                            GetDist(p2 - e.yxy, shapeB, _ScaleB, _ShapeSizeB),
+                            GetDist(p2 - e.yyx, shapeB, _ScaleB, _ShapeSizeB)
+                            );
+                    }
+
+                    return normalize(n);
+                }
+
+                
+                
                 float RayMarch(float3 rayOrigin, float3 rayDir, int shapeA, int shapeB) {
                     float distOrigin = 0;
                     float distScurface, distScurface1, distScurface2;
@@ -202,8 +222,8 @@ Shader "Unlit/RayMarch2"
                         float3 p1 = ApplyPointProps(p,_OffsetA, _RotationA, _ScaleA);
                         float3 p2 = ApplyPointProps(p, _OffsetB, _RotationB, _ScaleB);
                         // get the distance to the surface from the ray marching point
-                        distScurface1 = GetDist(p1, shapeA, _ScaleA);
-                        distScurface2 = GetDist(p2, shapeB, _ScaleB);
+                        distScurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
+                        distScurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
                         
 
                         distScurface = min(distScurface1, distScurface2);
@@ -235,7 +255,7 @@ Shader "Unlit/RayMarch2"
 
                     if (dist < _MaxDist) {
                         float3 p = GetPoint(rayOrigin, dist, rayDir);
-                        float3 n = GetNormal(p, _ShapeA, _ScaleA);
+                        float3 n = GetNormal(p, _ShapeA, _ShapeB);
                         col.rgb = n;
                     }
 
