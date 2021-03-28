@@ -3,6 +3,8 @@ Shader "Unlit/RayMarch"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _Offset("Offset", Vector) = (0,0,0,0)
+        _Rotation("Rotation", Vector) = (0,0,0,0)
         _MaxDist("Ray Distance", int) = 1000
         _MaxSteps("Ray Steps", int) = 100
         _SurfDist("Surface Distance", Float) = 0.01
@@ -46,6 +48,7 @@ Shader "Unlit/RayMarch"
 
             sampler2D _MainTex, _GrabTexture;
             float4 _MainTex_ST;
+            float3 _Offset, _Rotation;
             int _MaxDist, _MaxSteps, _Shape;
             float _SurfDist, _ShapeSize1, _ShapeSize2;
 
@@ -64,8 +67,26 @@ Shader "Unlit/RayMarch"
                 //o.Alpha = 
                 return o;
             }
+            // UTILITY FUNCTIONS
+            // for suedo random numbers
+            float Hash21(float2 val) {
+                val = frac(val * float2(123.345, 345.567));
+                val += dot(val, val + 54.321);
+                return frac(val.x * val.y);
+            }
+            // for mod
+            float mod(float x, float y)
+            {
+                return x - y * floor(x / y);
+            }
+            // for 2D rotation matrix
+            float2x2 rotMat(float angle) {
+                float s = sin(angle);
+                float c = cos(angle);
+                return float2x2(c, -s, s, c);
+            }
 
-            // shapes
+            // SHAPES
             float squareSDF(float3 p, float size) {
                 return length(max(abs(p) - size,0));
                 //return 0.1;
@@ -105,7 +126,7 @@ Shader "Unlit/RayMarch"
                 float i = min(max(x, y), 0);
                 return e + i;
             }
-            // operations
+            // SHAPE OPERATIONS
             float intersectSDF(float distA, float distB) {
                 return max(distA, distB);
             }
@@ -115,6 +136,7 @@ Shader "Unlit/RayMarch"
             float differenceSDF(float distA, float distB) {
                 return max(distA, -distB);
             }
+
 
             // calculates the distance from ray point to surface
             float GetDist(float3 p, int shape) {
@@ -143,7 +165,15 @@ Shader "Unlit/RayMarch"
 
             // get the point on the ray
             float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir) {
-                return rayOrigin + distOrigin * rayDir;
+                // get the point on the ray
+                float3 p = rayOrigin + distOrigin * rayDir;
+                // apply offset
+                p -= _Offset;
+                // apply rotation
+                p.xz = mul(p.xz, rotMat(_Rotation.y));
+                p.xy = mul(p.xy, rotMat(_Rotation.z));
+                p.yz = mul(p.yz, rotMat(_Rotation.x));
+                return p;
             }
 
             float RayMarch(float3 rayOrigin, float3 rayDir, int shape) {
