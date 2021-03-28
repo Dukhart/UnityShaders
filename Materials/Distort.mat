@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Distort
+  m_Shader: {fileID: 4800000, guid: 1d2749f3d4b995c48afe81664d5601ab, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 0652886d81888df43af2960afa88bed5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _Distort: 2.35
+    - _DistortRange: 0.176
+    - _DistortRangeA: 0
+    - _DistortRangeB: 0.5
+    - _DistortRangeX: 0.281
+    - _DistortRangeY: 0.272
+    - _DistortSize: 0.34
+    - _DistortSizeInternal: 0
+    - _DistortSpeedA: 0
+    - _DistortSpeedB: 0.5
+    - _DistortSpeedX: -1
+    - _DistortSpeedY: 1
+    - _DistortVarA: 0.05
+    - _DistortVarB: 0.75
+    - _DistortVarD: 3.55
+    - _DistortXOffset: 0.5
+    - _DistortYOffset: 0.5
+    m_Colors: []
+  m_BuildTextureStacks: []
