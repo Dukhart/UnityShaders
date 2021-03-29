@@ -8,23 +8,21 @@ Shader "Unlit/RayMarch2"
         _RayMarchColor2("RayMarchColor2", Color) = (1,1,1,1)
         _RayMarchTex("RayMarchTex", 2D) = "white" {}
         _Operation("Mode", Range(0,4)) = 0
-        _ShapeA("ShapeA", Range(0,4)) = 0
+        _ShapeA("ShapeA", Range(0,5)) = 0
         _OffsetA("Offset A", Vector) = (0,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
         _ScaleA("Scale A", Vector) = (1,1,1,1)
         _ShapeSizeA("Size A", Vector) = (.2,.1,.1,.1)
-            //ShapeSize1("Size", Float) = 0.3
-            //_ShapeSize2("Size", Float) = 0.2
 
-            _ShapeB("ShapeB", Range(0,4)) = 0
-            _OffsetB("Offset B", Vector) = (0,0,0,0)
-            _RotationB("Rotation B", Vector) = (0,0,0,0)
-            _ScaleB("Scale B", Vector) = (1,1,1,1)
-            _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
+        _ShapeB("ShapeB", Range(0,5)) = 0
+        _OffsetB("Offset B", Vector) = (0,0,0,0)
+        _RotationB("Rotation B", Vector) = (0,0,0,0)
+        _ScaleB("Scale B", Vector) = (1,1,1,1)
+        _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
 
-            _MaxDist("Ray Distance", int) = 1000
-            _MaxSteps("Ray Steps", int) = 100
-            _SurfDist("Surface Distance", Float) = 0.01
+        _MaxDist("Ray Distance", int) = 1000
+        _MaxSteps("Ray Steps", int) = 100
+        _SurfDist("Surface Distance", Float) = 0.01
     }
         SubShader
         {
@@ -104,7 +102,7 @@ Shader "Unlit/RayMarch2"
                 }
 
                 // SHAPES
-                float squareSDF(float3 p, float size) {
+                float boxSDF(float3 p, float3 size) {
                     return length(max(abs(p) - size,0));
                     //return 0.1;
                 }
@@ -143,6 +141,10 @@ Shader "Unlit/RayMarch2"
                     float i = min(max(x, y), 0);
                     return e + i;
                 }
+                float planeSDF(float3 p, float3 dir) {
+                    return dot(p, normalize(dir));
+                }
+
                 // SHAPE OPERATIONS
                 float intersectSDF(float distA, float distB) {
                     return max(distA, distB);
@@ -179,14 +181,15 @@ Shader "Unlit/RayMarch2"
                     return p;
                 }
                 // calculates the distance from ray point to surface
-                float GetDist(float3 p, int shape, float3 scale, float2 size) {
+                float GetDist(float3 p, int shape, float3 scale, float3 size) {
                     float dist = 0;
                     // scene shape goes here
                     if (shape == 0) dist = sphereSDF(p, size.x);
-                    else if (shape == 1) dist = squareSDF(p, size.x);
+                    else if (shape == 1) dist = boxSDF(p, size);
                     else if (shape == 2) dist = torusSDF(p, size.x, size.y);
                     else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);
                     else if (shape == 4) dist = cylinderSDF(p, size.x, size.y);
+                    else if (shape == 5) dist = planeSDF(p, float3(size.x, 1, size.y));
                     else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
                     // compensate for scale
                     dist = dist / max(max(scale.x, scale.y), scale.z);

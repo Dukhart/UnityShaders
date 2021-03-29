@@ -4,19 +4,19 @@ Shader "Unlit/RayMarch3"
     {
         _Color("Color", Color) = (1,1,1,1)
         _MainTex("Texture", 2D) = "white" {}
-        _RayMarchColor1("RayMarchColor", Color) = (1,1,1,1)
-        _RayMarchColor2("RayMarchColor2", Color) = (1,1,1,1)
+        _RayMarchColor1("RayMarchColor", Color) = (1,0,0,1)
+        _RayMarchColor2("RayMarchColor2", Color) = (0,0,1,1)
         _RayMarchTex("RayMarchTex", 2D) = "white" {}
         _Operation("Mode", Range(0,4)) = 0
 
-        _ShapeA("ShapeA", Range(0,4)) = 0
-        _OffsetA("Offset A", Vector) = (0,0,0,0)
+        _ShapeA("ShapeA", Range(0,6)) = 0
+        _OffsetA("Offset A", Vector) = (0.1,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
         _ScaleA("Scale A", Vector) = (1,1,1,1)
         _ShapeSizeA("Size A", Vector) = (.2,.1,.1,.1)
 
-        _ShapeB("ShapeB", Range(0,4)) = 0
-        _OffsetB("Offset B", Vector) = (0,0,0,0)
+        _ShapeB("ShapeB", Range(0,6)) = 1
+        _OffsetB("Offset B", Vector) = (-0.1,0,0,0)
         _RotationB("Rotation B", Vector) = (0,0,0,0)
         _ScaleB("Scale B", Vector) = (1,1,1,1)
         _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
@@ -61,7 +61,7 @@ Shader "Unlit/RayMarch3"
 
                 sampler2D _MainTex, _GrabTexture, _RayMarchTex;
                 float _SurfDist;
-                float3 _ShapeSizeA, _ShapeSizeB;
+                float4 _ShapeSizeA, _ShapeSizeB;
                 float3 _OffsetA, _RotationA, _ScaleA, _OffsetB, _RotationB, _ScaleB;
                 float4 _MainTex_ST, _Color, _RayMarchColor1, _RayMarchColor2;
 
@@ -103,11 +103,15 @@ Shader "Unlit/RayMarch3"
                 }
 
                 // SHAPES
-                float squareSDF(float3 p, float size) {
+                float squareSDF(float3 p, float3 size) {
                     return length(max(abs(p) - size,0));
                     //return 0.1;
                 }
-                float sphereSDF(float3 p, float size) {
+                float squareSDF2(float3 p, float size, float wall) {
+                    return abs(squareSDF(p,size))- wall;
+                    //return 0.1;
+                }
+                float sphereSDF(float3 p, float3 size) {
                     return length(p) - size;
                 }
                 float torusSDF(float3 p, float sizeA, float sizeB) {
@@ -142,6 +146,10 @@ Shader "Unlit/RayMarch3"
                     float i = min(max(x, y), 0);
                     return e + i;
                 }
+                float planeSDF(float3 p, float3 dir) {
+                    return dot(p, normalize(dir));
+                }
+
                 // SHAPE OPERATIONS
                 float intersectSDF(float distA, float distB) {
                     return max(distA, distB);
@@ -178,14 +186,16 @@ Shader "Unlit/RayMarch3"
                     return p;
                 }
                 // calculates the distance from ray point to surface
-                float GetDist(float3 p, int shape, float3 scale, float2 size) {
+                float GetDist(float3 p, int shape, float3 scale, float4 size) {
                     float dist = 0;
                     // scene shape goes here
                     if (shape == 0) dist = sphereSDF(p, size.x);
-                    else if (shape == 1) dist = squareSDF(p, size.x);
+                    else if (shape == 1) dist = squareSDF(p, size.xyz);
                     else if (shape == 2) dist = torusSDF(p, size.x, size.y);
                     else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);
                     else if (shape == 4) dist = cylinderSDF(p, size.x, size.y);
+                    else if (shape == 5) dist = planeSDF(p, float3(size.x,1,size.y));
+                    else if (shape == 6) dist = squareSDF2(p, size.xyz, size.w);
                     else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
                     // compensate for scale
                     dist = dist / max(max(scale.x, scale.y), scale.z);
@@ -225,15 +235,17 @@ Shader "Unlit/RayMarch3"
                 float2 RayMarch(float3 rayOrigin, float3 rayDir, int shapeA, int shapeB) {
                     float distOrigin = 0;
                     float distSurface, distSurface1, distSurface2, colLerp;
+                    float time = mod(_Time.y, 72000);
                     for (int i = 0; i < _MaxSteps; i++)
                     {
                         // get the ray marching point
                         float3 p = GetPoint(rayOrigin, distOrigin, rayDir);
                         float3 p1 = ApplyPointProps(p,_OffsetA, _RotationA, _ScaleA);
                         float3 p2 = ApplyPointProps(p, _OffsetB, _RotationB, _ScaleB);
+                        p2.z += sin(p2.x * 10 + time)*0.1;
                         // get the distance to the surface from the ray marching point
-                        distSurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);
-                        distSurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);
+                        distSurface1 = GetDist(p1, shapeA, _ScaleA, _ShapeSizeA);// -sin(p1.x * 20 + time) * .1) * 0.2;
+                        distSurface2 = GetDist(p2, shapeB, _ScaleB, _ShapeSizeB);// -cos(p2.x * 20 + time) * .1) * 0.2;;
 
                         
                         if (_Operation == 0) {
@@ -282,7 +294,7 @@ Shader "Unlit/RayMarch3"
                         distOrigin += distSurface;
                         // if distSurface < _SurfDist we hit something, 
                         // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
-                        if (distSurface < _SurfDist || distOrigin > _MaxDist) {
+                        if (distSurface < _SurfDist || abs(distOrigin) > _MaxDist) {
                             break;
                         }
                     }
@@ -311,7 +323,7 @@ Shader "Unlit/RayMarch3"
                         col = tex2D(_RayMarchTex, i.uv) * lerp(_RayMarchColor1, _RayMarchColor2, rm.y);
                     }
 
-                    col = lerp(col, tex, smoothstep(.1, .2, mask));
+                    //col = lerp(col, tex, smoothstep(.1, .2, mask));
 
                     //col.rg = uv;
                     return col;

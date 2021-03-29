@@ -30,8 +30,8 @@ Material:
     m_Floats:
     - _MaxDist: 1000
     - _MaxSteps: 100
-    - _Operation: 4
-    - _ShapeA: 2.6
+    - _Operation: 2.89
+    - _ShapeA: 1.2
     - _ShapeB: 0
     - _SurfDist: 0.01
     m_Colors:
@@ -45,6 +45,6 @@ Material:
     - _RotationB: {r: -0.03, g: 0, b: 0, a: 0}
     - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
-    - _ShapeSizeA: {r: 0.2, g: 0.1, b: 1, a: 0.1}
+    - _ShapeSizeA: {r: 0.2, g: 0.1, b: 0.1, a: 0.1}
     - _ShapeSizeB: {r: 0.2, g: 0.1, b: 1, a: 0.1}
   m_BuildTextureStacks: []

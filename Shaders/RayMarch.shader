@@ -12,7 +12,7 @@ Shader "Unlit/RayMarch"
         _MaxDist("Ray Distance", int) = 1000
         _MaxSteps("Ray Steps", int) = 100
         _SurfDist("Surface Distance", Float) = 0.01
-        _Shape("Shape", Range(0,4)) = 0
+        _Shape("Shape", Range(0,5)) = 0
         _ShapeSize1("Size", Float) = 0.3
         _ShapeSize2("Size", Float) = 0.2
     }
@@ -131,6 +131,9 @@ Shader "Unlit/RayMarch"
                     float i = min(max(x, y), 0);
                     return e + i;
                 }
+                float planeSDF(float3 p, float3 dir) {
+                    return dot(p, normalize(dir));
+                }
                 // SHAPE OPERATIONS
                 float intersectSDF(float distA, float distB) {
                     return max(distA, distB);
@@ -151,6 +154,7 @@ Shader "Unlit/RayMarch"
                     else if (shape == 2) dist = torusSDF(p, _ShapeSize1, _ShapeSize2);
                     else if (shape == 3) dist = capsuleSDF(p, _ShapeSize1, _ShapeSize2);
                     else if (shape == 4) dist = cylinderSDF(p, _ShapeSize1, _ShapeSize2);
+                    else if (shape == 5) dist = planeSDF(p, float3(_ShapeSize1, 1, _ShapeSize2));
                     else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
                     // compensate for scale
                     dist = dist / max(max(_Scale.x, _Scale.y), _Scale.z);
