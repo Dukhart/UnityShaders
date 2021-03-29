@@ -8,23 +8,22 @@ Shader "Unlit/RayMarch3"
         _RayMarchColor2("RayMarchColor2", Color) = (1,1,1,1)
         _RayMarchTex("RayMarchTex", 2D) = "white" {}
         _Operation("Mode", Range(0,4)) = 0
+
         _ShapeA("ShapeA", Range(0,4)) = 0
         _OffsetA("Offset A", Vector) = (0,0,0,0)
         _RotationA("Rotation A", Vector) = (0,0,0,0)
         _ScaleA("Scale A", Vector) = (1,1,1,1)
         _ShapeSizeA("Size A", Vector) = (.2,.1,.1,.1)
-            //ShapeSize1("Size", Float) = 0.3
-            //_ShapeSize2("Size", Float) = 0.2
 
-            _ShapeB("ShapeB", Range(0,4)) = 0
-            _OffsetB("Offset B", Vector) = (0,0,0,0)
-            _RotationB("Rotation B", Vector) = (0,0,0,0)
-            _ScaleB("Scale B", Vector) = (1,1,1,1)
-            _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
+        _ShapeB("ShapeB", Range(0,4)) = 0
+        _OffsetB("Offset B", Vector) = (0,0,0,0)
+        _RotationB("Rotation B", Vector) = (0,0,0,0)
+        _ScaleB("Scale B", Vector) = (1,1,1,1)
+        _ShapeSizeB("Size B", Vector) = (.2,.1,.1,.1)
 
-            _MaxDist("Ray Distance", int) = 1000
-            _MaxSteps("Ray Steps", int) = 100
-            _SurfDist("Surface Distance", Float) = 0.01
+        _MaxDist("Ray Distance", int) = 1000
+        _MaxSteps("Ray Steps", int) = 100
+        _SurfDist("Surface Distance", Float) = 0.01
     }
         SubShader
         {

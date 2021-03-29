@@ -72,10 +72,10 @@ Material:
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
-    - _Operation: 3.36
+    - _Operation: 2.72
     - _Parallax: 0.02
     - _Shape: 0
-    - _ShapeA: 2.78
+    - _ShapeA: 1.61
     - _ShapeB: 0
     - _ShapeSize1: 0.3
     - _ShapeSize2: 0.2
