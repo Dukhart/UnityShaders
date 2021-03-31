@@ -74,7 +74,7 @@ Material:
     - _OcclusionStrength: 1
     - _Operation: 0
     - _Parallax: 0.02
-    - _ShapeA: 0
+    - _ShapeA: 6
     - _ShapeB: 1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -93,6 +93,6 @@ Material:
     - _RotationB: {r: 0, g: 0, b: 0, a: 0}
     - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
-    - _ShapeSizeA: {r: 0.2, g: 0.1, b: 0.1, a: 0.1}
-    - _ShapeSizeB: {r: 0.2, g: 0.1, b: 0.1, a: 0.1}
+    - _ShapeSizeA: {r: 0.14, g: 0.43, b: 0.48, a: 0.1}
+    - _ShapeSizeB: {r: 0.41, g: 0.1, b: 0.1, a: 0.1}
   m_BuildTextureStacks: []

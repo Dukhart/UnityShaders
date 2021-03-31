@@ -105,12 +105,12 @@ Shader "Unlit/RayMarch4"
                     float dist = 0;
                     // scene shape goes here
                     if (shape == 0) dist = sphereSDF(p, size.x);
-                    else if (shape == 1) dist = squareSDF(p, size.xyz);
-                    else if (shape == 2) dist = torusSDF(p, size.x, size.y);
+                    else if (shape == 1) dist = boxSDF(p, size.xyz);
+                    else if (shape == 2) dist = torusSDF(p, size.xy);
                     else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);
                     else if (shape == 4) dist = cylinderSDF(p, size.x, size.y);
-                    else if (shape == 5) dist = planeSDF(p, float3(size.x,1,size.y));
-                    else if (shape == 6) dist = squareSDF2(p, size.xyz, size.w);
+                    else if (shape == 5) dist = planeSDF(p, float3(size.x,1,size.y),size.z);
+                    else if (shape == 6) dist = boxFrameSDF(p, size.xyz, size.w);
                     else dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)) - 0.5; // backup
                     // compensate for scale
                     dist = dist / max(max(scale.x, scale.y), scale.z);
