@@ -417,6 +417,7 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
 */
 
 // SHAPES 3D
+
 // Sphere - exact
 class SphereSDF : SDF
 {
@@ -481,12 +482,208 @@ class BoxSDF : SDF
     }
 };
 
+// BoxRound - exact
+class BoxRoundSDF : SDF
+{
+    float size;
+    float bevel;
+    // BoxRound - exact
+    static float boxRoundSDF(float3 p, float3 size, float bevel)
+    {
+        float3 q = abs(p) - size;
+        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - bevel;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return boxRoundSDF(p, size, bevel);
+    }
+};
+// BoxFrame - exact
+class BoxFrameSDF : SDF
+{
+    float size;
+    float frame;
+    // BoxFrame - exact
+    static float boxFrameSDF(float3 p, float size, float frame)
+    {
+        p = abs(p) - size;
+        float3 q = abs(p + frame) - frame;
+        return min(min(
+    length(max(float3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
+    length(max(float3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
+    length(max(float3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return boxFrameSDF(p,size,frame);
+    }
+};
 
 
-//
+// Torus - exact
+class TorusSDF : SDF
+{
+    float size;
+    // Torus - exact
+    static float torusSDF(float3 p, float2 size)
+    {
+        float2 q = float2(length(p.xz) - size.x, p.y);
+        return length(q) - size.y;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return 0;
+    }
+};
+// TorusCapped - exact
+class TorusCappedSDF : SDF
+{
+    float ra, rb;
+    float2 sc;
+    // TorusCapped - exact
+    static float torusCappedSDF(float3 p, float2 sc, float ra, float rb)
+    {
+        p.x = abs(p.x);
+        float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
+        return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return torusCappedSDF(p, sc, ra, rb);
+    }
+};
+// Link - exact
+class LinkSDF : SDF
+{
+    float le, r1, r2;
+    // Link - exact
+    static float linkSDF(float3 p, float le, float r1, float r2)
+    {
+        float3 q = float3(p.x, max(abs(p.y) - le, 0.0), p.z);
+        return length(float2(length(q.xy) - r1, q.z)) - r2;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return linkSDF( p, le, r1, r2);
+    }
+};
+
+// Cylinder Capped - exact
+class CylinderSDF : SDF
+{
+    float r;
+    float3 a, b;
+    // Cylinder Capped - exact
+    static float cylinderSDF(float3 p, float3 a, float3 b, float r)
+    {
+        float3 ba = b - a;
+        float3 pa = p - a;
+        float baba = dot(ba, ba);
+        float paba = dot(pa, ba);
+        float x = length(pa * baba - ba * paba) - r * baba;
+        float y = abs(paba - baba * 0.5) - baba * 0.5;
+        float x2 = x * x;
+        float y2 = y * y * baba;
+        float d = (max(x, y) < 0.0) ? -min(x2, y2) : (((x > 0.0) ? x2 : 0.0) + ((y > 0.0) ? y2 : 0.0));
+        return sign(d) * sqrt(abs(d)) / baba;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return cylinderSDF(p, a, b, r);
+    }
+};
+// Cylinder Capped - exact
+class CylinderVerticalSDF : SDF
+{
+    float h,r;
+    // Cylinder Capped - exact
+    static float cylinderVerticalSDF(float3 p, float h, float r)
+    {
+        float2 d = abs(float2(length(p.xz), p.y)) - float2(h, r);
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return cylinderVerticalSDF(p, h, r);
+    }
+};
+// Cylinder Infinite  - exact
+class CylinderInfiniteSDF : SDF
+{
+    float size;
+    // Cylinder Infinite  - exact
+    static float cylinderInfiniteSDF(float3 p, float3 size)
+    {
+        return length(p.xz - size.xy) - size.z;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return cylinderInfiniteSDF(p, size);
+    }
+};
+// Cylinder Rounded - exact
+class CylinderRoundedSDF : SDF
+{
+    float ra, rb, h;
+    // Cylinder Rounded - exact
+    static float cylinderRoundedSDF(float3 p, float ra, float rb, float h)
+    {
+        float2 d = float2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return cylinderRoundedSDF(p, ra, rb, h);
+    }
+};
+// Capsule - exact
+class CapsuleSDF : SDF
+{
+    float r;
+    float a, b;
+    
+    // Capsule - exact
+    static float capsuleSDF(float3 p, float3 a, float3 b, float r)
+    {
+        float3 pa = p - a, ba = b - a;
+        float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        return length(pa - ba * h) - r;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return capsuleSDF(p, a, b, r);
+    }
+};
+// Capsule Vertical  - exact
+class CapsuleVerticalSDF : SDF
+{
+    float h, r;
+    // Capsule Vertical  - exact
+    static float capsuleVerticalSDF(float3 p, float h, float r)
+    {
+        p.y -= clamp(p.y, 0.0, h);
+        return length(p) - r;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return capsuleVerticalSDF(p, h, r);
+    }
+};
+
+// temp - exact
 class tSDF : SDF
 {
-    
     float size;
     
     // gets the sdf objects distance
@@ -497,88 +694,35 @@ class tSDF : SDF
 };
 
 
+// Plane - exact
+class PlaneSDF : SDF
+{
+    float h;
+    float3 n;
+    // Plane - exact
+    static float planeSDF(float3 p, float3 n, float h)
+    {
+    // n must be normalized
+        return dot(p, n) + h;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return planeSDF(p, n, h);
+    }
+};
 
 
 
 
-// BoxRound - exact
-float boxRoundSDF(float3 p, float3 size, float bevel)
-{
-    float3 q = abs(p) - size;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - bevel;
-}
-// BoxFrame - exact
-float boxFrameSDF(float3 p, float size, float frame) {
-    p = abs(p) - size;
-    float3 q = abs(p + frame) - frame;
-    return min(min(
-    length(max(float3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
-    length(max(float3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
-    length(max(float3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
-}
 
-// Torus - exact
-float torusSDF(float3 p, float2 size) {
-    float2 q = float2(length(p.xz) - size.x, p.y);
-    return length(q) - size.y;
-}
-// TorusCapped - exact
-float torusCappedSDF(float3 p, float2 sc, float ra, float rb)
-{
-    p.x = abs(p.x);
-    float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
-    return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
-}
-// Link - exact
-float linkSDF(float3 p, float le, float r1, float r2)
-{
-    float3 q = float3(p.x, max(abs(p.y) - le, 0.0), p.z);
-    return length(float2(length(q.xy) - r1, q.z)) - r2;
-}
-// Cylinder Capped - exact
-float cylinderSDF(float3 p, float h, float r)
-{
-    float2 d = abs(float2(length(p.xz), p.y)) - float2(h, r);
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
-}
-// Cylinder Capped - exact
-float cylinderSDF(float3 p, float3 a, float3 b, float r)
-{
-    float3 ba = b - a;
-    float3 pa = p - a;
-    float baba = dot(ba, ba);
-    float paba = dot(pa, ba);
-    float x = length(pa * baba - ba * paba) - r * baba;
-    float y = abs(paba - baba * 0.5) - baba * 0.5;
-    float x2 = x * x;
-    float y2 = y * y * baba;
-    float d = (max(x, y) < 0.0) ? -min(x2, y2) : (((x > 0.0) ? x2 : 0.0) + ((y > 0.0) ? y2 : 0.0));
-    return sign(d) * sqrt(abs(d)) / baba;
-}
-// Cylinder Infinite  - exact
-float cylinderInfiniteSDF(float3 p, float3 c)
-{
-    return length(p.xz - c.xy) - c.z;
-}
-// Cylinder Rounded - exact
-float cylinderRoundedSDF(float3 p, float ra, float rb, float h)
-{
-    float2 d = float2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
-}
-// Capsule - exact
-float capsuleSDF(float3 p, float3 a, float3 b, float r)
-{
-    float3 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba * h) - r;
-}
-// Capsule Vertical  - exact
-float capsuleSDF(float3 p, float h, float r)
-{
-    p.y -= clamp(p.y, 0.0, h);
-    return length(p) - r;
-}
+
+
+
+
+
+
+
 
 // Cone - exact
 float sdCone(in float3 p, in float2 c, float h)
@@ -690,12 +834,9 @@ float solidAngleSDF(float3 p, float2 c, float ra)
     float m = length(q - c * clamp(dot(q, c), 0.0, ra));
     return max(l, m * sign(c.y * q.x - c.x * q.y));
 }
-// Plane - exact
-float planeSDF(float3 p, float3 n, float h)
-{
-    // n must be normalized
-    return dot(p, n) + h;
-}
+
+
+
 // Triangle - exact
 float triangleSDF(float3 p, float3 a, float3 b, float3 c)
 {
@@ -949,7 +1090,7 @@ float opRevolution(in float3 p, float primitive, float o)
 }
 */
 
-float onionSDF(float dist, in float thickness)
+float onionSDF(float dist, float thickness)
 {
     return abs(dist) - thickness;
 }

@@ -8,7 +8,7 @@ float Hash21(float2 val)
     val += dot(val, val + 54.321);
     return frac(val.x * val.y);
 }
-// for ShaderLab mod
+// for ShaderToy mod
 float mod(float x, float y)
 {
     return x - y * floor(x / y);
@@ -20,6 +20,8 @@ float2x2 rotMat(float angle)
     float c = cos(angle);
     return float2x2(c, -s, s, c);
 }
+
+
 float dot2(float2 v)
 {
     return dot(v, v);
@@ -32,4 +34,5 @@ float ndot(float2 a, float2 b)
 {
     return a.x * b.x - a.y * b.y;
 }
+
 #endif // __DUKHART_MATH_HLSL__
