@@ -9,12 +9,12 @@ interface iSDF
 };
 class SDF : iSDF
 {
+    float3 p;
     float getDist()
     {
         return 0;
     }
 };
-
 
 // SHAPES 2D
 /*
@@ -420,38 +420,87 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
 // Sphere - exact
 class SphereSDF : SDF
 {
-    float3 p;
-    float size;
+    float radius;
     // Sphere - exact
-    static float sphereSDF(float3 p, float size)
+    static float sphereSDF(float3 p, float radius)
     {
-        return length(p) - size;
+        return length(p) - radius;
     }
     // gets the sdf objects distance
     float getDist()
     {
-        return sphereSDF(p, size);
+        return sphereSDF(p, radius);
+    }
+};
+// Ellipsoid - bound  - *NOT exact*
+class EllipsoidSDF : SDF
+{
+    float3 radii;
+    // Ellipsoid - bound  - *NOT exact*
+    static float ellipsiodSDF(float3 p, float3 radii)
+    {
+        return length(p) - radii;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return ellipsiodSDF(p, radii);
+    }
+};
+// Ellipsoid - bound  - *NOT exact*
+class EllipsoidBndSDF : SDF
+{
+    float3 radii;
+    // Ellipsoid - bound  - *NOT exact*
+    static float ellipsoidBndSDF(float3 p, float3 radii)
+    {
+        float k0 = length(p / radii);
+        float k1 = length(p / (radii * radii));
+        return k0 * (k0 - 1.0) / k1;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return ellipsoidBndSDF(p, radii);
+    }
+};
+// Box - exact
+class BoxSDF : SDF
+{
+    float3 size;
+    // Box - exact
+    static float boxSDF(float3 p, float3 size)
+    {
+        float3 q = abs(p) - size;
+        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return boxSDF(p, size);
     }
 };
 
-// Ellipsoid - bound  - *NOT exact*
-float ellipsiodSDF(float3 p, float3 size)
-{
-    return length(p) - size;
-}
-// Ellipsoid - bound  - *NOT exact*
-float sdEllipsoid(float3 p, float3 r)
-{
-    float k0 = length(p / r);
-    float k1 = length(p / (r * r));
-    return k0 * (k0 - 1.0) / k1;
-}
 
-// Box - exact
-float boxSDF(float3 p, float3 size) {
-    float3 q = abs(p) - size;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-}
+
+//
+class tSDF : SDF
+{
+    
+    float size;
+    
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return 0;
+    }
+};
+
+
+
+
+
+
 // BoxRound - exact
 float boxRoundSDF(float3 p, float3 size, float bevel)
 {

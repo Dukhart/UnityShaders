@@ -105,7 +105,7 @@ Shader "Unlit/RayMarch4"
                     float dist = 0;
                     // scene shape goes here
                     if (shape == 0) dist = SphereSDF::sphereSDF(p, size.x);
-                    else if (shape == 1) dist = boxSDF(p, size.xyz);
+                    else if (shape == 1) dist = BoxSDF::boxSDF(p, size.xyz);
                     else if (shape == 2) dist = torusSDF(p, size.xy);
                     else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);
                     else if (shape == 4) dist = cylinderSDF(p, size.x, size.y);
