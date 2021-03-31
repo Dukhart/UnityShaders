@@ -104,7 +104,7 @@ Shader "Unlit/RayMarch4"
                 float GetDist(float3 p, int shape, float3 scale, float4 size) {
                     float dist = 0;
                     // scene shape goes here
-                    if (shape == 0) dist = sphereSDF(p, size.x);
+                    if (shape == 0) dist = SphereSDF::sphereSDF(p, size.x);
                     else if (shape == 1) dist = boxSDF(p, size.xyz);
                     else if (shape == 2) dist = torusSDF(p, size.xy);
                     else if (shape == 3) dist = capsuleSDF(p, size.x, size.y);

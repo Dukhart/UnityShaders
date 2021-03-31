@@ -7,7 +7,7 @@ interface iSDF
 {
     float getDist();
 };
-class sdfShape : iSDF
+class SDF : iSDF
 {
     float getDist()
     {
@@ -15,10 +15,7 @@ class sdfShape : iSDF
     }
 };
 
-class sdfSphere : sdfShape
-{
-    
-};
+
 // SHAPES 2D
 /*
 // Circle - exact
@@ -421,10 +418,22 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
 
 // SHAPES 3D
 // Sphere - exact
-float sphereSDF(float3 p, float size)
+class SphereSDF : SDF
 {
-    return length(p) - size;
-}
+    float3 p;
+    float size;
+    // Sphere - exact
+    static float sphereSDF(float3 p, float size)
+    {
+        return length(p) - size;
+    }
+    // gets the sdf objects distance
+    float getDist()
+    {
+        return sphereSDF(p, size);
+    }
+};
+
 // Ellipsoid - bound  - *NOT exact*
 float ellipsiodSDF(float3 p, float3 size)
 {
