@@ -3,19 +3,6 @@
 
 #include "Math.cginc"
 
-interface iSDF
-{
-    float getDist();
-};
-class SDF : iSDF
-{
-    float3 p;
-    float getDist()
-    {
-        return 0;
-    }
-};
-
 // SHAPES 2D
 /*
 // Circle - exact
@@ -417,9 +404,12 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
 */
 
 // SHAPES 3D
-
+interface iSDF
+{
+    float getDist(float3 p);
+};
 // Sphere - exact
-class SphereSDF : SDF
+struct SphereSDF : iSDF
 {
     float radius;
     // Sphere - exact
@@ -428,13 +418,37 @@ class SphereSDF : SDF
         return length(p) - radius;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return sphereSDF(p, radius);
     }
 };
+
+
+
+
+// Box - exact
+struct BoxSDF : iSDF
+{
+    float3 size;
+    // Box - exact
+    static float boxSDF(float3 p, float3 s)
+    {
+        float3 q = abs(p) - s;
+        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return boxSDF(p, size);
+    }
+};
+
+
+
+
 // Ellipsoid - bound  - *NOT exact*
-class EllipsoidSDF : SDF
+struct EllipsoidSDF : iSDF
 {
     float3 radii;
     // Ellipsoid - bound  - *NOT exact*
@@ -443,13 +457,13 @@ class EllipsoidSDF : SDF
         return length(p) - radii;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return ellipsiodSDF(p, radii);
     }
 };
 // Ellipsoid - bound  - *NOT exact*
-class EllipsoidBndSDF : SDF
+struct EllipsoidBndSDF : iSDF
 {
     float3 radii;
     // Ellipsoid - bound  - *NOT exact*
@@ -460,30 +474,15 @@ class EllipsoidBndSDF : SDF
         return k0 * (k0 - 1.0) / k1;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return ellipsoidBndSDF(p, radii);
     }
 };
-// Box - exact
-class BoxSDF : SDF
-{
-    float3 size;
-    // Box - exact
-    static float boxSDF(float3 p, float3 size)
-    {
-        float3 q = abs(p) - size;
-        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-    }
-    // gets the sdf objects distance
-    float getDist()
-    {
-        return boxSDF(p, size);
-    }
-};
+
 
 // BoxRound - exact
-class BoxRoundSDF : SDF
+struct BoxRoundSDF : iSDF
 {
     float size;
     float bevel;
@@ -494,13 +493,13 @@ class BoxRoundSDF : SDF
         return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - bevel;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return boxRoundSDF(p, size, bevel);
     }
 };
 // BoxFrame - exact
-class BoxFrameSDF : SDF
+struct BoxFrameSDF : iSDF
 {
     float size;
     float frame;
@@ -515,7 +514,7 @@ class BoxFrameSDF : SDF
     length(max(float3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return boxFrameSDF(p,size,frame);
     }
@@ -523,7 +522,7 @@ class BoxFrameSDF : SDF
 
 
 // Torus - exact
-class TorusSDF : SDF
+class TorusSDF : iSDF
 {
     float size;
     // Torus - exact
@@ -533,13 +532,13 @@ class TorusSDF : SDF
         return length(q) - size.y;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return 0;
     }
 };
 // TorusCapped - exact
-class TorusCappedSDF : SDF
+struct TorusCappedSDF : iSDF
 {
     float ra, rb;
     float2 sc;
@@ -551,13 +550,13 @@ class TorusCappedSDF : SDF
         return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return torusCappedSDF(p, sc, ra, rb);
     }
 };
 // Link - exact
-class LinkSDF : SDF
+struct LinkSDF : iSDF
 {
     float le, r1, r2;
     // Link - exact
@@ -567,14 +566,14 @@ class LinkSDF : SDF
         return length(float2(length(q.xy) - r1, q.z)) - r2;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return linkSDF( p, le, r1, r2);
     }
 };
 
 // Cylinder Capped - exact
-class CylinderSDF : SDF
+struct CylinderSDF : iSDF
 {
     float r;
     float3 a, b;
@@ -593,13 +592,13 @@ class CylinderSDF : SDF
         return sign(d) * sqrt(abs(d)) / baba;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return cylinderSDF(p, a, b, r);
     }
 };
 // Cylinder Capped - exact
-class CylinderVerticalSDF : SDF
+struct CylinderVerticalSDF : iSDF
 {
     float h,r;
     // Cylinder Capped - exact
@@ -609,13 +608,13 @@ class CylinderVerticalSDF : SDF
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return cylinderVerticalSDF(p, h, r);
     }
 };
 // Cylinder Infinite  - exact
-class CylinderInfiniteSDF : SDF
+struct CylinderInfiniteSDF : iSDF
 {
     float size;
     // Cylinder Infinite  - exact
@@ -624,13 +623,13 @@ class CylinderInfiniteSDF : SDF
         return length(p.xz - size.xy) - size.z;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return cylinderInfiniteSDF(p, size);
     }
 };
 // Cylinder Rounded - exact
-class CylinderRoundedSDF : SDF
+struct CylinderRoundedSDF : iSDF
 {
     float ra, rb, h;
     // Cylinder Rounded - exact
@@ -640,17 +639,16 @@ class CylinderRoundedSDF : SDF
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return cylinderRoundedSDF(p, ra, rb, h);
     }
 };
 // Capsule - exact
-class CapsuleSDF : SDF
+struct CapsuleSDF : iSDF
 {
     float r;
     float a, b;
-    
     // Capsule - exact
     static float capsuleSDF(float3 p, float3 a, float3 b, float r)
     {
@@ -659,13 +657,13 @@ class CapsuleSDF : SDF
         return length(pa - ba * h) - r;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return capsuleSDF(p, a, b, r);
     }
 };
 // Capsule Vertical  - exact
-class CapsuleVerticalSDF : SDF
+struct CapsuleVerticalSDF : iSDF
 {
     float h, r;
     // Capsule Vertical  - exact
@@ -675,27 +673,26 @@ class CapsuleVerticalSDF : SDF
         return length(p) - r;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return capsuleVerticalSDF(p, h, r);
     }
 };
 
 // temp - exact
-class tSDF : SDF
+struct tSDF : iSDF
 {
     float size;
     
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return 0;
     }
 };
 
-
 // Plane - exact
-class PlaneSDF : SDF
+struct PlaneSDF : iSDF
 {
     float h;
     float3 n;
@@ -706,12 +703,11 @@ class PlaneSDF : SDF
         return dot(p, n) + h;
     }
     // gets the sdf objects distance
-    float getDist()
+    float getDist(float3 p)
     {
         return planeSDF(p, n, h);
     }
 };
-
 
 
 
@@ -887,11 +883,14 @@ float quadSDF(float3 p, float3 a, float3 b, float3 c, float3 d)
      :
      dot(nor, pa) * dot(nor, pa) / dot2(nor));
 }
+
+// Prism Tri
 float triPrismSDF(float3 p, float3 h)
 {
     float3 q = abs(p);
     return max(q.z - h.y, max(q.x * 0.866025 + p.y * 0.5, -p.y) - h.x * 0.5);
 }
+// Prism Hex
 float hexPrismSDF(float3 p, float3 h)
 {
     const float3 k = float3(-0.8660254, 0.5, 0.57735);
@@ -903,7 +902,7 @@ float hexPrismSDF(float3 p, float3 h)
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
 
-//Octahedron - exact
+// Octahedron - exact
 float octahedronSDF(float3 p, float s)
 {
     p = abs(p);
@@ -921,7 +920,7 @@ float octahedronSDF(float3 p, float s)
     float k = clamp(0.5 * (q.z - q.y + s), 0.0, s);
     return length(float3(q.x, q.y - s + k, q.z - k));
 }
-//Octahedron - bound (not exact)
+// Octahedron - bound (not exact)
 float octahedronBoundSDF(float3 p, float s)
 {
     p = abs(p);
@@ -995,6 +994,13 @@ float smoothIntersectionSDF(float distA, float distB, float amount)
     return lerp(distB, distA, h) + amount * h * (1.0 - h);
 }
 
+
+// scale
+float sdfOpScale(float3 p, float s, iSDF primitive)
+{
+    p = p / s;
+    return primitive.getDist(p) * s;
+}
 // alteration ops
 // translate / rotate
 /*
@@ -1002,11 +1008,7 @@ vec3 opTx(in vec3 p, in transform t, float primitive)
 {
     return primitive(invert(t) * p);
 }
-// scale
-float opScale(in vec3 p, float s, float primitive)
-{
-    return primitive(p / s) * s;
-}
+
 float opSymX( in vec3 p, in sdf3d primitive )
 {
     p.x = abs(p.x);
@@ -1103,4 +1105,25 @@ float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir)
     return p;
 }
 
+float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape, float surfDistance = 0.1f, int maxSteps = 100, int maxDistance = 1000)
+{            
+    float distOrigin = 0;
+    float distScurface;
+    for (int i = 0; i < maxSteps; i++)
+    {
+        // get the ray marching point
+        float3 p = GetPoint(rayOrigin, distOrigin, rayDir);
+        // get the distance to the surface from the ray marching point
+        distScurface = shape.getDist(p);
+        // move our origin by surface distance
+        distOrigin += distScurface;
+        // if distScurface < _SurfDist we hit something, 
+        // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
+        if (distScurface < surfDistance || abs(distOrigin) > maxDistance)
+        {
+            break;
+        }
+    }
+    return distOrigin;
+}
 #endif // __DUKHART_SDF_HLSL__
