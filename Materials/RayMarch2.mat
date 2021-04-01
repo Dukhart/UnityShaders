@@ -30,7 +30,7 @@ Material:
     m_Floats:
     - _MaxDist: 1000
     - _MaxSteps: 100
-    - _Operation: 2.89
+    - _Operation: 2.08
     - _ShapeA: 1.2
     - _ShapeB: 0
     - _SurfDist: 0.01

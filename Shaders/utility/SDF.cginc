@@ -3,7 +3,12 @@
 
 #include "Math.cginc"
 
-// SHAPES 2D
+interface iSDF
+{
+    float getDist(float3 p);
+};
+
+/// SHAPES 2D
 /*
 // Circle - exact
 float sdCircle(vec2 p, float r)
@@ -402,12 +407,7 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
     return sqrt(res);
 }
 */
-
-// SHAPES 3D
-interface iSDF
-{
-    float getDist(float3 p);
-};
+/// SHAPES 3D
 // Sphere - exact
 struct SphereSDF : iSDF
 {
@@ -423,9 +423,23 @@ struct SphereSDF : iSDF
         return sphereSDF(p, radius);
     }
 };
-
-
-
+// Ellipsoid - bound  - *NOT exact*
+struct EllipsoidSDF : iSDF
+{
+    float3 radii;
+    // Ellipsoid - bound  - *NOT exact*
+    static float ellipsoidBndSDF(float3 p, float3 radii)
+    {
+        float k0 = length(p / radii);
+        float k1 = length(p / (radii * radii));
+        return k0 * (k0 - 1.0) / k1;
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return ellipsoidBndSDF(p, radii);
+    }
+};
 
 // Box - exact
 struct BoxSDF : iSDF
@@ -443,48 +457,10 @@ struct BoxSDF : iSDF
         return boxSDF(p, size);
     }
 };
-
-
-
-
-// Ellipsoid - bound  - *NOT exact*
-struct EllipsoidSDF : iSDF
-{
-    float3 radii;
-    // Ellipsoid - bound  - *NOT exact*
-    static float ellipsiodSDF(float3 p, float3 radii)
-    {
-        return length(p) - radii;
-    }
-    // gets the sdf objects distance
-    float getDist(float3 p)
-    {
-        return ellipsiodSDF(p, radii);
-    }
-};
-// Ellipsoid - bound  - *NOT exact*
-struct EllipsoidBndSDF : iSDF
-{
-    float3 radii;
-    // Ellipsoid - bound  - *NOT exact*
-    static float ellipsoidBndSDF(float3 p, float3 radii)
-    {
-        float k0 = length(p / radii);
-        float k1 = length(p / (radii * radii));
-        return k0 * (k0 - 1.0) / k1;
-    }
-    // gets the sdf objects distance
-    float getDist(float3 p)
-    {
-        return ellipsoidBndSDF(p, radii);
-    }
-};
-
-
 // BoxRound - exact
 struct BoxRoundSDF : iSDF
 {
-    float size;
+    float3 size;
     float bevel;
     // BoxRound - exact
     static float boxRoundSDF(float3 p, float3 size, float bevel)
@@ -501,13 +477,13 @@ struct BoxRoundSDF : iSDF
 // BoxFrame - exact
 struct BoxFrameSDF : iSDF
 {
-    float size;
+    float3 size;
     float frame;
     // BoxFrame - exact
-    static float boxFrameSDF(float3 p, float size, float frame)
+    static float boxFrameSDF(float3 p, float3 s, float f)
     {
-        p = abs(p) - size;
-        float3 q = abs(p + frame) - frame;
+        p = abs(p) - s;
+        float3 q = abs(p + f) - f;
         return min(min(
     length(max(float3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
     length(max(float3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
@@ -519,64 +495,80 @@ struct BoxFrameSDF : iSDF
         return boxFrameSDF(p,size,frame);
     }
 };
-
-
 // Torus - exact
 class TorusSDF : iSDF
 {
-    float size;
+    float2 radii;
     // Torus - exact
-    static float torusSDF(float3 p, float2 size)
+    static float torusSDF(float3 p, float2 r)
     {
-        float2 q = float2(length(p.xz) - size.x, p.y);
-        return length(q) - size.y;
+        float2 q = float2(length(p.xz) - r.x, p.y);
+        return length(q) - r.y;
     }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return 0;
+        return torusSDF(p, radii);
     }
 };
 // TorusCapped - exact
 struct TorusCappedSDF : iSDF
 {
-    float ra, rb;
-    float2 sc;
+    float2 radii;
+    float2 cap;
     // TorusCapped - exact
-    static float torusCappedSDF(float3 p, float2 sc, float ra, float rb)
+    static float torusCappedSDF(float3 p, float2 sc, float2 r)
     {
         p.x = abs(p.x);
         float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
-        return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
+        return sqrt(dot(p, p) + r.x * r.x - 2.0 * r.x * k) - r.y;
     }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return torusCappedSDF(p, sc, ra, rb);
+        return torusCappedSDF(p, cap, radii);
     }
 };
 // Link - exact
 struct LinkSDF : iSDF
 {
-    float le, r1, r2;
+    float2 radii;
+    float length;
     // Link - exact
-    static float linkSDF(float3 p, float le, float r1, float r2)
+    static float linkSDF(float3 p, float l, float2 r)
     {
-        float3 q = float3(p.x, max(abs(p.y) - le, 0.0), p.z);
-        return length(float2(length(q.xy) - r1, q.z)) - r2;
+        float3 q = float3(p.x, max(abs(p.y) - l, 0.0), p.z);
+        return length(float2(length(q.xy) - r.x, q.z)) - r.y;
     }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return linkSDF( p, le, r1, r2);
+        return linkSDF(p, length, radii);
     }
 };
+
 
 // Cylinder Capped - exact
 struct CylinderSDF : iSDF
 {
-    float r;
-    float3 a, b;
+    float height, radius;
+    // Cylinder Capped - exact
+    static float cylinderVerticalSDF(float3 p, float h, float r)
+    {
+        float2 d = abs(float2(length(p.xz), p.y)) - float2(h, r);
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return cylinderVerticalSDF(p, height, radius);
+    }
+};
+// Cylinder Capped - exact
+struct CylinderAdvSDF : iSDF
+{
+    float radius;
+    float3 offsetA, offsetB;
     // Cylinder Capped - exact
     static float cylinderSDF(float3 p, float3 a, float3 b, float r)
     {
@@ -594,61 +586,64 @@ struct CylinderSDF : iSDF
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return cylinderSDF(p, a, b, r);
-    }
-};
-// Cylinder Capped - exact
-struct CylinderVerticalSDF : iSDF
-{
-    float h,r;
-    // Cylinder Capped - exact
-    static float cylinderVerticalSDF(float3 p, float h, float r)
-    {
-        float2 d = abs(float2(length(p.xz), p.y)) - float2(h, r);
-        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
-    }
-    // gets the sdf objects distance
-    float getDist(float3 p)
-    {
-        return cylinderVerticalSDF(p, h, r);
+        return cylinderSDF(p, offsetA, offsetB, radius);
     }
 };
 // Cylinder Infinite  - exact
 struct CylinderInfiniteSDF : iSDF
 {
-    float size;
+    float radius;
+    float2 pos;
     // Cylinder Infinite  - exact
-    static float cylinderInfiniteSDF(float3 p, float3 size)
+    static float cylinderInfiniteSDF(float3 p, float r, float2 pos = float2(0,0))
     {
-        return length(p.xz - size.xy) - size.z;
+        return length(p.xz - pos) - r;
     }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return cylinderInfiniteSDF(p, size);
+        return cylinderInfiniteSDF(p, radius, pos);
     }
 };
 // Cylinder Rounded - exact
 struct CylinderRoundedSDF : iSDF
 {
-    float ra, rb, h;
+    float radius, height, cap;
     // Cylinder Rounded - exact
-    static float cylinderRoundedSDF(float3 p, float ra, float rb, float h)
+    static float cylinderRoundedSDF(float3 p, float r, float c, float h)
     {
-        float2 d = float2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
-        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
+        float2 d = float2(length(p.xz) - 2.0 * r + c, abs(p.y) - h);
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - c;
     }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return cylinderRoundedSDF(p, ra, rb, h);
+        return cylinderRoundedSDF(p, radius, cap, height);
+    }
+};
+
+
+// Capsule Vertical  - exact
+struct CapsuleSDF : iSDF
+{
+    float height, radius;
+    // Capsule Vertical  - exact
+    static float capsuleVerticalSDF(float3 p, float h, float r)
+    {
+        p.y -= clamp(p.y, 0.0, h);
+        return length(p) - r;
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return capsuleVerticalSDF(p, height, radius);
     }
 };
 // Capsule - exact
-struct CapsuleSDF : iSDF
+struct CapsuleAdvSDF : iSDF
 {
-    float r;
-    float a, b;
+    float radius;
+    float3 offsetA, offsetB;
     // Capsule - exact
     static float capsuleSDF(float3 p, float3 a, float3 b, float r)
     {
@@ -659,35 +654,206 @@ struct CapsuleSDF : iSDF
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return capsuleSDF(p, a, b, r);
-    }
-};
-// Capsule Vertical  - exact
-struct CapsuleVerticalSDF : iSDF
-{
-    float h, r;
-    // Capsule Vertical  - exact
-    static float capsuleVerticalSDF(float3 p, float h, float r)
-    {
-        p.y -= clamp(p.y, 0.0, h);
-        return length(p) - r;
-    }
-    // gets the sdf objects distance
-    float getDist(float3 p)
-    {
-        return capsuleVerticalSDF(p, h, r);
+        return capsuleSDF(p, offsetA, offsetB, radius);
     }
 };
 
-// temp - exact
-struct tSDF : iSDF
+
+// UNTESTED 3D Shape Functions
+// Cone - exact
+struct ConeSDF : iSDF
 {
-    float size;
-    
+    float2 c;
+    float h;
+    // Cone - exact
+    static float coneSDF(in float3 p, float2 c, float h)
+    {
+        // c is the sin/cos of the angle, h is height
+        // Alternatively pass q instead of (c,h),
+        // which is the point at the base in 2D
+        float2 q = h * float2(c.x / c.y, -1.0);
+        float2 w = float2(length(p.xz), p.y);
+        float2 a = w - q * clamp(dot(w, q) / dot(q, q), 0.0, 1.0);
+        float2 b = w - q * float2(clamp(w.x / q.x, 0.0, 1.0), 1.0);
+        float k = sign(q.y);
+        float d = min(dot(a, a), dot(b, b));
+        float s = max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+        return sqrt(d) * sign(s);
+    }
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return 0;
+        return coneSDF(p, c, h);
+    }
+};
+// Cone Bound - *NOT exact*
+struct ConeBoundSDF : iSDF
+{
+    float2 c;
+    float h;
+    // Cone Bound - *NOT exact*
+    static float coneBoundSDF(float3 p, float2 c, float h)
+    {
+        float q = length(p.xz);
+        return max(dot(c.xy, float2(q, p.y)), -h - p.y);
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneBoundSDF(p, c, h);
+    }
+};
+// Cone Infinite - exact
+struct ConeInfiniteSDF : iSDF
+{
+    float2 c;
+    // Cone Infinite - exact
+    static float coneInfiniteSDF(float3 p, float2 c)
+    {
+        // c is the sin/cos of the angle
+        float2 q = float2(length(p.xz), -p.y);
+        float d = length(q - c * max(dot(q, c), 0.0));
+        return d * ((q.x * c.y - q.y * c.x < 0.0) ? -1.0 : 1.0);
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneInfiniteSDF(p, c);
+    }
+};
+// Cone Capped - exact
+struct ConeCappedSDF : iSDF
+{
+    float h, r1, r2;
+    // Cone Capped - exact
+    static float coneCappedSDF(float3 p, float h, float r1, float r2)
+    {
+        float2 q = float2(length(p.xz), p.y);
+        float2 k1 = float2(r2, h);
+        float2 k2 = float2(r2 - r1, 2.0 * h);
+        float2 ca = float2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
+        float2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot2(k2), 0.0, 1.0);
+        float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+        return s * sqrt(min(dot2(ca), dot2(cb)));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneCappedSDF(p, h, r1, r2);
+    }
+};
+//Capped Cone - exact 
+struct ConeCapped2SDF : iSDF
+{
+    float ra, rb;
+    float3 a, b;
+    //Capped Cone - exact 
+    static float coneCappedSDF(float3 p, float3 a, float3 b, float ra, float rb)
+    {
+        float rba = rb - ra;
+        float baba = dot(b - a, b - a);
+        float papa = dot(p - a, p - a);
+        float paba = dot(p - a, b - a) / baba;
+        float x = sqrt(papa - paba * paba * baba);
+        float cax = max(0.0, x - ((paba < 0.5) ? ra : rb));
+        float cay = abs(paba - 0.5) - 0.5;
+        float k = rba * rba + baba;
+        float f = clamp((rba * (x - ra) + paba * baba) / k, 0.0, 1.0);
+        float cbx = x - ra - f * rba;
+        float cby = paba - f;
+        float s = (cbx < 0.0 && cay < 0.0) ? -1.0 : 1.0;
+        return s * sqrt(min(cax * cax + cay * cay * baba,
+                       cbx * cbx + cby * cby * baba));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneCappedSDF(p, a, b, ra, rb);
+    }
+};
+// Round Cone - exact
+struct ConeRoundSDF : iSDF
+{
+    float r1, r2, h;
+    // Round Cone - exact
+    static float coneRoundSDF(float3 p, float r1, float r2, float h)
+    {
+        float2 q = float2(length(p.xz), p.y);
+    
+        float b = (r1 - r2) / h;
+        float a = sqrt(1.0 - b * b);
+        float k = dot(q, float2(-b, a));
+    
+        if (k < 0.0)
+            return length(q) - r1;
+        if (k > a * h)
+            return length(q - float2(0.0, h)) - r2;
+        
+        return dot(q, float2(a, b)) - r1;
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneRoundSDF(p, r1, r2, h);
+    }
+};
+// Round Cone - exact
+struct ConeRound2SDF : iSDF
+{
+    float r1, r2;
+    float3 a, b;
+    // Round Cone - exact
+    static float coneRoundSDF(float3 p, float3 a, float3 b, float r1, float r2)
+    {
+        
+        // sampling independent computations (only depend on shape)
+        float3 ba = b - a;
+        float l2 = dot(ba, ba);
+        float rr = r1 - r2;
+        float a2 = l2 - rr * rr;
+        float il2 = 1.0 / l2;
+    
+        // sampling dependant computations
+        float3 pa = p - a;
+        float y = dot(pa, ba);
+        float z = y - l2;
+        float x2 = dot2(pa * l2 - ba * y);
+        float y2 = y * y * l2;
+        float z2 = z * z * l2;
+
+        // single square root!
+        float k = sign(rr) * rr * rr * x2;
+        if (sign(z) * a2 * z2 > k)
+            return sqrt(x2 + z2) * il2 - r2;
+        if (sign(y) * a2 * y2 < k)
+            return sqrt(x2 + y2) * il2 - r1;
+        return (sqrt(x2 * a2 * il2) + y * rr) * il2 - r1;
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return coneRoundSDF(p, a, b, r1, r2);
+    }
+};
+// Solid Angle - exact
+struct solidAngleSDF : iSDF
+{
+    float ra;
+    float2 c;
+    float3 p;
+    // Solid Angle - exact
+    static float solidAngleSDF(float3 p, float2 c, float ra)
+    {
+    // c is the sin/cos of the angle
+        float2 q = float2(length(p.xz), p.y);
+        float l = length(q) - ra;
+        float m = length(q - c * clamp(dot(q, c), 0.0, ra));
+        return max(l, m * sign(c.y * q.x - c.x * q.y));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return solidAngleSDF(p, c, ra);
     }
 };
 
@@ -699,7 +865,8 @@ struct PlaneSDF : iSDF
     // Plane - exact
     static float planeSDF(float3 p, float3 n, float h)
     {
-    // n must be normalized
+        // n must be normalized
+        normalize(n);
         return dot(p, n) + h;
     }
     // gets the sdf objects distance
@@ -708,143 +875,22 @@ struct PlaneSDF : iSDF
         return planeSDF(p, n, h);
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-// Cone - exact
-float sdCone(in float3 p, in float2 c, float h)
-{
-    // c is the sin/cos of the angle, h is height
-    // Alternatively pass q instead of (c,h),
-    // which is the point at the base in 2D
-    float2 q = h * float2(c.x / c.y, -1.0);
-    
-    float2 w = float2(length(p.xz), p.y);
-    float2 a = w - q * clamp(dot(w, q) / dot(q, q), 0.0, 1.0);
-    float2 b = w - q * float2(clamp(w.x / q.x, 0.0, 1.0), 1.0);
-    float k = sign(q.y);
-    float d = min(dot(a, a), dot(b, b));
-    float s = max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
-    return sqrt(d) * sign(s);
-}
-// Cone Bound - *NOT exact*
-float sdConeBoundSDF(float3 p, float2 c, float h)
-{
-    float q = length(p.xz);
-    return max(dot(c.xy, float2(q, p.y)), -h - p.y);
-}
-// Cone Infinite - exact
-float coneInfiniteSDF(float3 p, float2 c)
-{
-    // c is the sin/cos of the angle
-    float2 q = float2(length(p.xz), -p.y);
-    float d = length(q - c * max(dot(q, c), 0.0));
-    return d * ((q.x * c.y - q.y * c.x < 0.0) ? -1.0 : 1.0);
-}
-// Cone Capped - exact
-float sdCappedconeSDF(float3 p, float h, float r1, float r2)
-{
-    float2 q = float2(length(p.xz), p.y);
-    float2 k1 = float2(r2, h);
-    float2 k2 = float2(r2 - r1, 2.0 * h);
-    float2 ca = float2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
-    float2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot2(k2), 0.0, 1.0);
-    float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
-    return s * sqrt(min(dot2(ca), dot2(cb)));
-}
-//Capped Cone - exact 
-float sdCappedconeSDF(float3 p, float3 a, float3 b, float ra, float rb)
-{
-    float rba = rb - ra;
-    float baba = dot(b - a, b - a);
-    float papa = dot(p - a, p - a);
-    float paba = dot(p - a, b - a) / baba;
-    float x = sqrt(papa - paba * paba * baba);
-    float cax = max(0.0, x - ((paba < 0.5) ? ra : rb));
-    float cay = abs(paba - 0.5) - 0.5;
-    float k = rba * rba + baba;
-    float f = clamp((rba * (x - ra) + paba * baba) / k, 0.0, 1.0);
-    float cbx = x - ra - f * rba;
-    float cby = paba - f;
-    float s = (cbx < 0.0 && cay < 0.0) ? -1.0 : 1.0;
-    return s * sqrt(min(cax * cax + cay * cay * baba,
-                       cbx * cbx + cby * cby * baba));
-}
-// Round Cone - exact
-float sdRoundconeSDF(float3 p, float r1, float r2, float h)
-{
-    float2 q = float2(length(p.xz), p.y);
-    
-    float b = (r1 - r2) / h;
-    float a = sqrt(1.0 - b * b);
-    float k = dot(q, float2(-b, a));
-    
-    if (k < 0.0)
-        return length(q) - r1;
-    if (k > a * h)
-        return length(q - float2(0.0, h)) - r2;
-        
-    return dot(q, float2(a, b)) - r1;
-}
-// Round Cone - exact
-float sdRoundconeSDF(float3 p, float3 a, float3 b, float r1, float r2)
-{
-    // sampling independent computations (only depend on shape)
-    float3 ba = b - a;
-    float l2 = dot(ba, ba);
-    float rr = r1 - r2;
-    float a2 = l2 - rr * rr;
-    float il2 = 1.0 / l2;
-    
-    // sampling dependant computations
-    float3 pa = p - a;
-    float y = dot(pa, ba);
-    float z = y - l2;
-    float x2 = dot2(pa * l2 - ba * y);
-    float y2 = y * y * l2;
-    float z2 = z * z * l2;
-
-    // single square root!
-    float k = sign(rr) * rr * rr * x2;
-    if (sign(z) * a2 * z2 > k)
-        return sqrt(x2 + z2) * il2 - r2;
-    if (sign(y) * a2 * y2 < k)
-        return sqrt(x2 + y2) * il2 - r1;
-    return (sqrt(x2 * a2 * il2) + y * rr) * il2 - r1;
-}
-// Solid Angle - exact
-float solidAngleSDF(float3 p, float2 c, float ra)
-{
-  // c is the sin/cos of the angle
-    float2 q = float2(length(p.xz), p.y);
-    float l = length(q) - ra;
-    float m = length(q - c * clamp(dot(q, c), 0.0, ra));
-    return max(l, m * sign(c.y * q.x - c.x * q.y));
-}
-
-
-
 // Triangle - exact
-float triangleSDF(float3 p, float3 a, float3 b, float3 c)
+struct TriangleSDF : iSDF
 {
-    float3 ba = b - a;
-    float3 pa = p - a;
-    float3 cb = c - b;
-    float3 pb = p - b;
-    float3 ac = a - c;
-    float3 pc = p - c;
-    float3 nor = cross(ba, ac);
+    float3 a, b, c;
+    // Triangle - exact
+    static float triangleSDF(float3 p, float3 a, float3 b, float3 c)
+    {
+        float3 ba = b - a;
+        float3 pa = p - a;
+        float3 cb = c - b;
+        float3 pb = p - b;
+        float3 ac = a - c;
+        float3 pc = p - c;
+        float3 nor = cross(ba, ac);
 
-    return sqrt(
+        return sqrt(
     (sign(dot(cross(ba, nor), pa)) +
      sign(dot(cross(cb, nor), pb)) +
      sign(dot(cross(ac, nor), pc)) < 2.0)
@@ -855,21 +901,31 @@ float triangleSDF(float3 p, float3 a, float3 b, float3 c)
      dot2(ac * clamp(dot(ac, pc) / dot2(ac), 0.0, 1.0) - pc))
      :
      dot(nor, pa) * dot(nor, pa) / dot2(nor));
-}
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return triangleSDF(p, a, b, c);
+    }
+};
 // Quad - exact
-float quadSDF(float3 p, float3 a, float3 b, float3 c, float3 d)
+struct QuadSDF : iSDF
 {
-    float3 ba = b - a;
-    float3 pa = p - a;
-    float3 cb = c - b;
-    float3 pb = p - b;
-    float3 dc = d - c;
-    float3 pc = p - c;
-    float3 ad = a - d;
-    float3 pd = p - d;
-    float3 nor = cross(ba, ad);
+    float3 a, b, c, d;
+    // Quad - exact
+    static float quadSDF(float3 p, float3 a, float3 b, float3 c, float3 d)
+    {
+        float3 ba = b - a;
+        float3 pa = p - a;
+        float3 cb = c - b;
+        float3 pb = p - b;
+        float3 dc = d - c;
+        float3 pc = p - c;
+        float3 ad = a - d;
+        float3 pd = p - d;
+        float3 nor = cross(ba, ad);
 
-    return sqrt(
+        return sqrt(
     (sign(dot(cross(ba, nor), pa)) +
      sign(dot(cross(cb, nor), pb)) +
      sign(dot(cross(dc, nor), pc)) +
@@ -882,80 +938,149 @@ float quadSDF(float3 p, float3 a, float3 b, float3 c, float3 d)
      dot2(ad * clamp(dot(ad, pd) / dot2(ad), 0.0, 1.0) - pd))
      :
      dot(nor, pa) * dot(nor, pa) / dot2(nor));
-}
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return quadSDF(p, a, b, c, d);
+    }
+};
 
 // Prism Tri
-float triPrismSDF(float3 p, float3 h)
+struct TriPrismSDF : iSDF
 {
-    float3 q = abs(p);
-    return max(q.z - h.y, max(q.x * 0.866025 + p.y * 0.5, -p.y) - h.x * 0.5);
-}
+    float3 h;
+    // Prism Tri
+    static float triPrismSDF(float3 p, float3 h)
+    {
+        float3 q = abs(p);
+        return max(q.z - h.y, max(q.x * 0.866025 + p.y * 0.5, -p.y) - h.x * 0.5);
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return triPrismSDF(p, h);
+    }
+};
 // Prism Hex
-float hexPrismSDF(float3 p, float3 h)
+struct HexPrismSDF : iSDF
 {
-    const float3 k = float3(-0.8660254, 0.5, 0.57735);
-    p = abs(p);
-    p.xy -= 2.0 * min(dot(k.xy, p.xy), 0.0) * k.xy;
-    float2 d = float2(
+    float3 h;
+    // Prism Hex
+    static float hexPrismSDF(float3 p, float3 h)
+    {
+        const float3 k = float3(-0.8660254, 0.5, 0.57735);
+        p = abs(p);
+        p.xy -= 2.0 * min(dot(k.xy, p.xy), 0.0) * k.xy;
+        float2 d = float2(
        length(p.xy - float2(clamp(p.x, -k.z * h.x, k.z * h.x), h.x)) * sign(p.y - h.x),
        p.z - h.y);
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
-}
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return hexPrismSDF(p, h);
+    }
+};
+
 
 // Octahedron - exact
-float octahedronSDF(float3 p, float s)
+struct OctahedronSDF : iSDF
 {
-    p = abs(p);
-    float m = p.x + p.y + p.z - s;
-    float3 q;
-    if (3.0 * p.x < m)
-        q = p.xyz;
-    else if (3.0 * p.y < m)
-        q = p.yzx;
-    else if (3.0 * p.z < m)
-        q = p.zxy;
-    else
-        return m * 0.57735027;
+    float s;
+    // Octahedron - exact
+    static float octahedronSDF(float3 p, float s)
+    {
+        p = abs(p);
+        float m = p.x + p.y + p.z - s;
+        float3 q;
+        if (3.0 * p.x < m)
+            q = p.xyz;
+        else if (3.0 * p.y < m)
+            q = p.yzx;
+        else if (3.0 * p.z < m)
+            q = p.zxy;
+        else
+            return m * 0.57735027;
     
-    float k = clamp(0.5 * (q.z - q.y + s), 0.0, s);
-    return length(float3(q.x, q.y - s + k, q.z - k));
-}
+        float k = clamp(0.5 * (q.z - q.y + s), 0.0, s);
+        return length(float3(q.x, q.y - s + k, q.z - k));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return octahedronSDF(p, s);
+    }
+};
 // Octahedron - bound (not exact)
-float octahedronBoundSDF(float3 p, float s)
+struct OctahedronBoundSDF : iSDF
 {
-    p = abs(p);
-    return (p.x + p.y + p.z - s) * 0.57735027;
-}
+    float s;
+    // Octahedron - bound (not exact)
+    static float octahedronBoundSDF(float3 p, float s)
+    {
+        p = abs(p);
+        return (p.x + p.y + p.z - s) * 0.57735027;
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return octahedronBoundSDF(p, s);
+    }
+};
 // Pyramid - exact
-float pyramidSDF(float3 p, float h)
+struct PyramidSDF : iSDF
 {
-    float m2 = h * h + 0.25;
+    float h;
+    // Pyramid - exact
+    static float pyramidSDF(float3 p, float h)
+    {
+        float m2 = h * h + 0.25;
     
-    p.xz = abs(p.xz);
-    p.xz = (p.z > p.x) ? p.zx : p.xz;
-    p.xz -= 0.5;
+        p.xz = abs(p.xz);
+        p.xz = (p.z > p.x) ? p.zx : p.xz;
+        p.xz -= 0.5;
 
-    float3 q = float3(p.z, h * p.y - 0.5 * p.x, h * p.x + 0.5 * p.y);
+        float3 q = float3(p.z, h * p.y - 0.5 * p.x, h * p.x + 0.5 * p.y);
    
-    float s = max(-q.x, 0.0);
-    float t = clamp((q.y - 0.5 * p.z) / (m2 + 0.25), 0.0, 1.0);
+        float s = max(-q.x, 0.0);
+        float t = clamp((q.y - 0.5 * p.z) / (m2 + 0.25), 0.0, 1.0);
     
-    float a = m2 * (q.x + s) * (q.x + s) + q.y * q.y;
-    float b = m2 * (q.x + 0.5 * t) * (q.x + 0.5 * t) + (q.y - m2 * t) * (q.y - m2 * t);
+        float a = m2 * (q.x + s) * (q.x + s) + q.y * q.y;
+        float b = m2 * (q.x + 0.5 * t) * (q.x + 0.5 * t) + (q.y - m2 * t) * (q.y - m2 * t);
     
-    float d2 = min(q.y, -q.x * m2 - q.y * 0.5) > 0.0 ? 0.0 : min(a, b);
+        float d2 = min(q.y, -q.x * m2 - q.y * 0.5) > 0.0 ? 0.0 : min(a, b);
     
-    return sqrt((d2 + q.z * q.z) / m2) * sign(max(q.z, -p.y));
-}
+        return sqrt((d2 + q.z * q.z) / m2) * sign(max(q.z, -p.y));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return pyramidSDF(p, h);
+    }
+};
 // Rhombus - exact
-float rhombusSDF(float3 p, float la, float lb, float h, float ra)
+struct RhombusSDF : iSDF
 {
-    p = abs(p);
-    float2 b = float2(la, lb);
-    float f = clamp((ndot(b, b - 2.0 * p.xz)) / dot(b, b), -1.0, 1.0);
-    float2 q = float2(length(p.xz - 0.5 * b * float2(1.0 - f, 1.0 + f)) * sign(p.x * b.y + p.z * b.x - b.x * b.y) - ra, p.y - h);
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0));
-}
+    float la, lb, h, ra;
+    // Rhombus - exact
+    static float rhombusSDF(float3 p, float la, float lb, float h, float ra)
+    {
+        p = abs(p);
+        float2 b = float2(la, lb);
+        float f = clamp((ndot(b, b - 2.0 * p.xz)) / dot(b, b), -1.0, 1.0);
+        float2 q = float2(length(p.xz - 0.5 * b * float2(1.0 - f, 1.0 + f)) * sign(p.x * b.y + p.z * b.x - b.x * b.y) - ra, p.y - h);
+        return min(max(q.x, q.y), 0.0) + length(max(q, 0.0));
+    }
+    // gets the sdf objects distance
+    float getDist(float3 p)
+    {
+        return rhombusSDF(p, la, lb, h, ra);
+    }
+};
+
+
 
 // SHAPE OPERATIONS
 // boolean ops
@@ -1105,7 +1230,7 @@ float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir)
     return p;
 }
 
-float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape, float surfDistance = 0.1f, int maxSteps = 100, int maxDistance = 1000)
+float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
 {            
     float distOrigin = 0;
     float distScurface;
