@@ -85,16 +85,16 @@ Shader "Unlit/RayMarch4"
 					 // set the ray to be just behind the camera
 					 float3 rayOrigin = i.rayOrigin;
 					 float3 rayDir = normalize(i.hitPos - rayOrigin);
-					 float4 rm = 0;
+					 //float4 rm = 0;
 					 float dist = 0;
 
-					 SphereSDF testSDF;
-					 testSDF.radius = _Scale;
-
+					 CapsuleSDF testSDF;
+					 testSDF.radius = _Size.x;
+					 testSDF.height = _Size.y;
 					 //BoxSDF testSDF2;
 					 //testSDF2.size = _Size;
-
-					 dist = RayMarch(rayOrigin, rayDir, testSDF);
+					 float4 rm[2];
+					 dist = RayMarch(rayOrigin, rayDir, testSDF, rm, _Offset, _Rotation, _Scale);
 
 					 //rm = RayMarch2(rayOrigin, rayDir, testSDF, testSDF2);
 					 //dist = rm.w;

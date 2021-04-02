@@ -1,6 +1,5 @@
 #ifndef __DUKHART_MATH_HLSL__
 #define __DUKHART_MATH_HLSL__
-
 // for suedo random numbers
 float Hash21(float2 val)
 {
@@ -28,6 +27,35 @@ float2x2 rotMat(float angle)
     float c = cos(angle);
     return float2x2(c, -s, s, c);
 }
+
+float max2(float2 val)
+{
+    return max(val.x, val.y);
+}
+float max3(float3 val)
+{
+    return max(max(val.x, val.y), val.z);
+}
+float min2(float2 val)
+{
+    return min(val.x, val.y);
+}
+float min3(float3 val)
+{
+    return min(min(val.x, val.y), val.z);
+}
+
+float not(float v)
+{
+    v = v == 0 ? 1 : 0;
+    return v;
+}
+float2 not(float2 v)
+{
+    v.x = v.x == 0 ? 1 : 0;
+    v.y = v.y == 0 ? 1 : 0;
+    return v;
+}
 float3 not(float3 v){
     v.x = v.x == 0 ? 1 : 0;
     v.y = v.y == 0 ? 1 : 0;
@@ -47,5 +75,4 @@ float ndot(float2 a, float2 b)
 {
     return a.x * b.x - a.y * b.y;
 }
-
 #endif // __DUKHART_MATH_HLSL__

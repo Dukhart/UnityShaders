@@ -7,13 +7,13 @@ interface iSDF
 {
     float getDist(float3 p);
 };
-
 /// SHAPES 2D
 // Circle - exact
 float sdCircle(float2 p, float r)
 {
     return length(p) - r;
 }
+
 // Rounded Box- exact
 float sdRoundedBox(float2 p, float2 b, float4 r)
 {
@@ -357,7 +357,6 @@ float sdParabola(float2 pos, float k)
         2.0 * cos(atan2(r, q) / 3.0) * sqrt(p);
     return length(pos - float2(x, k * x * x)) * sign(pos.x - x);
 }
-
 // Parabola Segment- exact
 float sdParabola(float2 pos, float wi, float he)
 {
@@ -560,7 +559,7 @@ struct CylinderSDF : iSDF
     // Cylinder Capped - exact
     static float cylinderVerticalSDF(float3 p, float h, float r)
     {
-        float2 d = abs(float2(length(p.xz), p.y)) - float2(h, r);
+        float2 d = abs(float2(length(p.xz), p.y)) - float2(r, h);
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
     }
     // gets the sdf objects distance
@@ -573,7 +572,7 @@ struct CylinderSDF : iSDF
 struct CylinderAdvSDF : iSDF
 {
     float radius;
-    float3 offsetA, offsetB;
+    float3 posA, posB;
     // Cylinder Capped - exact
     static float cylinderAdvSDF(float3 p, float3 a, float3 b, float r)
     {
@@ -588,10 +587,11 @@ struct CylinderAdvSDF : iSDF
         float d = (max(x, y) < 0.0) ? -min(x2, y2) : (((x > 0.0) ? x2 : 0.0) + ((y > 0.0) ? y2 : 0.0));
         return sign(d) * sqrt(abs(d)) / baba;
     }
+    
     // gets the sdf objects distance
     float getDist(float3 p)
     {
-        return cylinderAdvSDF(p, offsetA, offsetB, radius);
+        return cylinderAdvSDF(p, posA, posB, radius);
     }
 };
 // Cylinder Infinite  - exact
@@ -1122,7 +1122,7 @@ float smoothIntersectionSDF(float distA, float distB, float amount)
     float h = clamp(0.5 - 0.5 * (distB - distA) / amount, 0.0, 1.0);
     return lerp(distB, distA, h) + amount * h * (1.0 - h);
 }
-float sdfOpScale(float3 p, float s, iSDF primitive)
+float sdfOpScale(float3 p, float3 s, iSDF primitive)
 {
     return primitive.getDist(p / s) * s;
 }
@@ -1219,57 +1219,110 @@ float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir)
     //return
     return p;
 }
-float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape,float3 offset = 0, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
-{            
+float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape, float3 offset = 0, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
+{
     float distOrigin = 0;
-    float distScurface;
+    float distSurface;
+    float3 p = 0;
+    float4 c = 1;
     for (int i = 0; i < maxSteps; i++)
     {
         // get the ray marching point
-        float3 p = GetPoint(rayOrigin, distOrigin, rayDir);
+        p = GetPoint(rayOrigin, distOrigin, rayDir);
+        distSurface = shape.getDist(p);
         // get the distance to the surface from the ray marching point
-        distScurface = shape.getDist(p + offset);
+            
 
         // operation
         
+        
         // move our origin by surface distance
-        distOrigin += distScurface;
+        distOrigin += distSurface;
         // if distScurface < _SurfDist we hit something, 
         // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
-        if (distScurface < surfDistance || abs(distOrigin) > maxDistance)
+        if (distSurface < surfDistance || abs(distOrigin) > maxDistance)
         {
             break;
         }
     }
     return distOrigin;
 }
-float4 RayMarch2(float3 rayOrigin, float3 rayDir, iSDF shape1, iSDF shape2, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
+float3 RotPoint(float3 p, float3 rotation)
+{
+    p.xz = mul(p.xz, rotMat(rotation.y));
+    p.xy = mul(p.xy, rotMat(rotation.z));
+    p.yz = mul(p.yz, rotMat(rotation.x));
+    return p;
+}
+float3 ApplyPointProps(float3 p, float3 offset, float3 rotation, float3 scale)
+{
+    // apply offset
+    p -= offset;
+    // apply rotation
+    p = RotPoint(p, rotation);
+    // apply scale
+    p *= scale;
+    //return
+    return p;
+}
+float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape, out float4 rm[2], float3 offset = 0, float3 rot = 0, float3 scale = 1, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
+{            
+    float distOrigin = 0;
+    float distSurface;
+    float3 p = 0;
+    float4 c = 1;
+    for (int i = 0; i < maxSteps; i++)
+    {
+        // get the ray marching point
+        p = GetPoint(rayOrigin, distOrigin, rayDir);
+        p = ApplyPointProps(p, offset, rot, scale);
+        distSurface = shape.getDist(p) * scale;
+
+        // operation
+        
+        
+        // move our origin by surface distance
+        distOrigin += distSurface;
+        // if distScurface < _SurfDist we hit something, 
+        // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
+        if (distSurface < surfDistance || abs(distOrigin) > maxDistance)
+        {
+            break;
+        }
+    }
+    rm[0] = float4(p, 0);
+    rm[1] = c;
+    return distOrigin;
+}
+float RayMarch2(float3 rayOrigin, float3 rayDir, iSDF shape1, iSDF shape2, out float4 rm[2], float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
 {
     float distOrigin = 0;
-    float distScurface, distScurface1, distScurface2;
+    float distSurface, distSurface1, distSurface2;
     float3 p = 0;
+    float4 c = 1;
+    
     for (int i = 0; i < maxSteps; i++)
     {
         // get the ray marching point
         float3 p = GetPoint(rayOrigin, distOrigin, rayDir);
         // get the distance to the surface from the ray marching point
-        distScurface1 = shape1.getDist(p);
-        distScurface2 = shape2.getDist(p + float3(0.1,0,0));
-        
+        distSurface1 = shape1.getDist(p);
+        distSurface2 = shape2.getDist(p + float3(0.1,0,0));
         
         /// operation
-        distScurface = smoothUnionSDF(distScurface1, distScurface2, 0.05);
-        
+        distSurface = smoothUnionSDF(distSurface1, distSurface2, 0.05);
         
         // move our origin by surface distance
-        distOrigin += distScurface;
+        distOrigin += distSurface;
         // if distScurface < _SurfDist we hit something, 
         // if dist Origin > maxDist we reached the end of the ray and didn't hit anything
-        if (distScurface < surfDistance || abs(distOrigin) > maxDistance)
+        if (distSurface < surfDistance || abs(distOrigin) > maxDistance)
         {
             break;
         }
     }
-    return float4(p,distOrigin);
+    rm[0] = float4(p, 0);
+    rm[1] = c;
+    return distOrigin;
 }
 #endif // __DUKHART_SDF_HLSL__

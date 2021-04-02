@@ -93,16 +93,16 @@ Material:
     - _Color: {r: 0.9622642, g: 0.077162705, b: 0.077162705, a: 1}
     - _Color2: {r: 1, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _Offset: {r: 0.1, g: -0.1, b: 0.1, a: 0}
+    - _Offset: {r: 0, g: 0, b: 0, a: 0}
     - _OffsetA: {r: 0.1, g: 0, b: 0, a: 0}
     - _OffsetB: {r: -0.1, g: 0, b: 0, a: 0}
     - _RayMarchColor: {r: 1, g: 0, b: 0, a: 1}
     - _RayMarchColor1: {r: 1, g: 0, b: 0, a: 1}
     - _RayMarchColor2: {r: 0, g: 0, b: 1, a: 1}
-    - _Rotation: {r: 0.1, g: 0.1, b: -0.1, a: 0}
+    - _Rotation: {r: 0, g: 0, b: 0, a: 0}
     - _RotationA: {r: 0, g: 0, b: 0, a: 0}
     - _RotationB: {r: 0, g: 0, b: 0, a: 0}
-    - _Scale: {r: 0.1, g: 0.1, b: 0.1, a: 1}
+    - _Scale: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleA: {r: 1, g: 1, b: 1, a: 1}
     - _ScaleB: {r: 1, g: 1, b: 1, a: 1}
     - _ShapeSizeA: {r: 0.14, g: 0.43, b: 0.48, a: 0.1}
