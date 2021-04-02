@@ -9,196 +9,196 @@ interface iSDF
 };
 
 /// SHAPES 2D
-/*
 // Circle - exact
-float sdCircle(vec2 p, float r)
+float sdCircle(float2 p, float r)
 {
     return length(p) - r;
 }
 // Rounded Box- exact
-float sdRoundedBox(in vec2 p, in vec2 b, in vec4 r)
+float sdRoundedBox(float2 p, float2 b, float4 r)
 {
     r.xy = (p.x > 0.0) ? r.xy : r.zw;
     r.x = (p.y > 0.0) ? r.x : r.y;
-    vec2 q = abs(p) - b + r.x;
+    float2 q = abs(p) - b + r.x;
     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
 }
 // Box - exact
-float sdBox(in vec2 p, in vec2 b)
+float sdBox(float2 p, float2 b)
 {
-    vec2 d = abs(p) - b;
+    float2 d = abs(p) - b;
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
 }
 // Oriented Box- exact
-float sdOrientedBox(in vec2 p, in vec2 a, in vec2 b, float th)
+float sdOrientedBox(float2 p, float2 a, float2 b, float th)
 {
     float l = length(b - a);
-    vec2 d = (b - a) / l;
-    vec2 q = (p - (a + b) * 0.5);
-    q = mat2(d.x, -d.y, d.y, d.x) * q;
-    q = abs(q) - vec2(l, th) * 0.5;
+    float2 d = (b - a) / l;
+    float2 q = (p - (a + b) * 0.5);
+    q = mul(float2x2(d.x, -d.y, d.y, d.x), q);
+    q = abs(q) - float2(l, th) * 0.5;
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 }
 // Segment - exact
-float sdSegment(in vec2 p, in vec2 a, in vec2 b)
+float sdSegment(float2 p, float2 a, float2 b)
 {
-    vec2 pa = p - a, ba = b - a;
+    float2 pa = p - a, ba = b - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * h);
 }
 // Rhombus - exact
-float sdRhombus(in vec2 p, in vec2 b)
+float sdRhombus(float2 p, float2 b)
 {
-    vec2 q = abs(p);
+    float2 q = abs(p);
     float h = clamp((-2.0 * ndot(q, b) + ndot(b, b)) / dot(b, b), -1.0, 1.0);
-    float d = length(q - 0.5 * b * vec2(1.0 - h, 1.0 + h));
+    float d = length(q - 0.5 * b * float2(1.0 - h, 1.0 + h));
     return d * sign(q.x * b.y + q.y * b.x - b.x * b.y);
 }
 //Isosceles Trapezoid- exact
-float sdTrapezoid(in vec2 p, in float r1, float r2, float he)
+float sdTrapezoid(float2 p, float r1, float r2, float he)
 {
-    vec2 k1 = vec2(r2, he);
-    vec2 k2 = vec2(r2 - r1, 2.0 * he);
+    float2 k1 = float2(r2, he);
+    float2 k2 = float2(r2 - r1, 2.0 * he);
     p.x = abs(p.x);
-    vec2 ca = vec2(p.x - min(p.x, (p.y < 0.0) ? r1 : r2), abs(p.y) - he);
-    vec2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot2(k2), 0.0, 1.0);
+    float2 ca = float2(p.x - min(p.x, (p.y < 0.0) ? r1 : r2), abs(p.y) - he);
+    float2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot2(k2), 0.0, 1.0);
     float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
     return s * sqrt(min(dot2(ca), dot2(cb)));
 }
 //Parallelogram - exact
-float sdParallelogram(in vec2 p, float wi, float he, float sk)
+float sdParallelogram(float2 p, float wi, float he, float sk)
 {
-    vec2 e = vec2(sk, he);
+    float2 e = float2(sk, he);
     p = (p.y < 0.0) ? -p : p;
-    vec2 w = p - e;
+    float2 w = p - e;
     w.x -= clamp(w.x, -wi, wi);
-    vec2 d = vec2(dot(w, w), -w.y);
+    float2 d = float2(dot(w, w), -w.y);
     float s = p.x * e.y - p.y * e.x;
     p = (s < 0.0) ? -p : p;
-    vec2 v = p - vec2(wi, 0);
+    float2 v = p - float2(wi, 0);
     v -= e * clamp(dot(v, e) / dot(e, e), -1.0, 1.0);
-    d = min(d, vec2(dot(v, v), wi * he - abs(s)));
+    d = min(d, float2(dot(v, v), wi * he - abs(s)));
     return sqrt(d.x) * sign(-d.y);
 }
 //Equilateral Triangle- exact
-float sdEquilateralTriangle(in vec2 p)
+float sdEquilateralTriangle(float2 p)
 {
     const float k = sqrt(3.0);
     p.x = abs(p.x) - 1.0;
     p.y = p.y + 1.0 / k;
     if (p.x + k * p.y > 0.0)
-        p = vec2(p.x - k * p.y, -k * p.x - p.y) / 2.0;
+        p = float2(p.x - k * p.y, -k * p.x - p.y) / 2.0;
     p.x -= clamp(p.x, -2.0, 0.0);
     return -length(p) * sign(p.y);
 }
 // Isosceles Triangle- exact
-float sdTriangleIsosceles(in vec2 p, in vec2 q)
+float sdTriangleIsosceles(float2 p, float2 q)
 {
     p.x = abs(p.x);
-    vec2 a = p - q * clamp(dot(p, q) / dot(q, q), 0.0, 1.0);
-    vec2 b = p - q * vec2(clamp(p.x / q.x, 0.0, 1.0), 1.0);
+    float2 a = p - q * clamp(dot(p, q) / dot(q, q), 0.0, 1.0);
+    float2 b = p - q * float2(clamp(p.x / q.x, 0.0, 1.0), 1.0);
     float s = -sign(q.y);
-    vec2 d = min(vec2(dot(a, a), s * (p.x * q.y - p.y * q.x)),
-                  vec2(dot(b, b), s * (p.y - q.y)));
+    float2 d = min(float2(dot(a, a), s * (p.x * q.y - p.y * q.x)),
+                  float2(dot(b, b), s * (p.y - q.y)));
     return -sqrt(d.x) * sign(d.y);
 }
 // Triangle - exact
-float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2)
+float sdTriangle(float2 p, float2 p0, float2 p1, float2 p2)
 {
-    vec2 e0 = p1 - p0, e1 = p2 - p1, e2 = p0 - p2;
-    vec2 v0 = p - p0, v1 = p - p1, v2 = p - p2;
-    vec2 pq0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
-    vec2 pq1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
-    vec2 pq2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
+    float2 e0 = p1 - p0, e1 = p2 - p1, e2 = p0 - p2;
+    float2 v0 = p - p0, v1 = p - p1, v2 = p - p2;
+    float2 pq0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
+    float2 pq1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
+    float2 pq2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
     float s = sign(e0.x * e2.y - e0.y * e2.x);
-    vec2 d = min(min(vec2(dot(pq0, pq0), s * (v0.x * e0.y - v0.y * e0.x)),
-                     vec2(dot(pq1, pq1), s * (v1.x * e1.y - v1.y * e1.x))),
-                     vec2(dot(pq2, pq2), s * (v2.x * e2.y - v2.y * e2.x)));
+    float2 d = min(min(float2(dot(pq0, pq0), s * (v0.x * e0.y - v0.y * e0.x)),
+                     float2(dot(pq1, pq1), s * (v1.x * e1.y - v1.y * e1.x))),
+                     float2(dot(pq2, pq2), s * (v2.x * e2.y - v2.y * e2.x)));
     return -sqrt(d.x) * sign(d.y);
 }
 // Uneven Capsule- exact
-float sdUnevenCapsule(vec2 p, float r1, float r2, float h)
+float sdUnevenCapsule(float2 p, float r1, float r2, float h)
 {
     p.x = abs(p.x);
     float b = (r1 - r2) / h;
     float a = sqrt(1.0 - b * b);
-    float k = dot(p, vec2(-b, a));
+    float k = dot(p, float2(-b, a));
     if (k < 0.0)
         return length(p) - r1;
     if (k > a * h)
-        return length(p - vec2(0.0, h)) - r2;
-    return dot(p, vec2(a, b)) - r1;
+        return length(p - float2(0.0, h)) - r2;
+    return dot(p, float2(a, b)) - r1;
 }
 // Regular Pentagon- exact
-float sdPentagon(in vec2 p, in float r)
+float sdPentagon(float2 p, float r)
 {
-    const vec3 k = vec3(0.809016994, 0.587785252, 0.726542528);
+    const float3 k = float3(0.809016994, 0.587785252, 0.726542528);
     p.x = abs(p.x);
-    p -= 2.0 * min(dot(vec2(-k.x, k.y), p), 0.0) * vec2(-k.x, k.y);
-    p -= 2.0 * min(dot(vec2(k.x, k.y), p), 0.0) * vec2(k.x, k.y);
-    p -= vec2(clamp(p.x, -r * k.z, r * k.z), r);
+    p -= 2.0 * min(dot(float2(-k.x, k.y), p), 0.0) * float2(-k.x, k.y);
+    p -= 2.0 * min(dot(float2(k.x, k.y), p), 0.0) * float2(k.x, k.y);
+    p -= float2(clamp(p.x, -r * k.z, r * k.z), r);
     return length(p) * sign(p.y);
 }
 // Regular Hexagon- exact
-float sdHexagon(in vec2 p, in float r)
+float sdHexagon(float2 p, float r)
 {
-    const vec3 k = vec3(-0.866025404, 0.5, 0.577350269);
+    const float3 k = float3(-0.866025404, 0.5, 0.577350269);
     p = abs(p);
     p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
-    p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
+    p -= float2(clamp(p.x, -k.z * r, k.z * r), r);
     return length(p) * sign(p.y);
 }
 // Regular Octogon- exact
-float sdOctogon(in vec2 p, in float r)
+float sdOctogon(float2 p, float r)
 {
-    const vec3 k = vec3(-0.9238795325, 0.3826834323, 0.4142135623);
+    const float3 k = float3(-0.9238795325, 0.3826834323, 0.4142135623);
     p = abs(p);
-    p -= 2.0 * min(dot(vec2(k.x, k.y), p), 0.0) * vec2(k.x, k.y);
-    p -= 2.0 * min(dot(vec2(-k.x, k.y), p), 0.0) * vec2(-k.x, k.y);
-    p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
+    p -= 2.0 * min(dot(float2(k.x, k.y), p), 0.0) * float2(k.x, k.y);
+    p -= 2.0 * min(dot(float2(-k.x, k.y), p), 0.0) * float2(-k.x, k.y);
+    p -= float2(clamp(p.x, -k.z * r, k.z * r), r);
     return length(p) * sign(p.y);
 }
 // Hexagram - exact
-float sdHexagram(in vec2 p, in float r)
+float sdHexagram(float2 p, float r)
 {
-    const vec4 k = vec4(-0.5, 0.8660254038, 0.5773502692, 1.7320508076);
+    const float4 k = float4(-0.5, 0.8660254038, 0.5773502692, 1.7320508076);
     p = abs(p);
     p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
     p -= 2.0 * min(dot(k.yx, p), 0.0) * k.yx;
-    p -= vec2(clamp(p.x, r * k.z, r * k.w), r);
+    p -= float2(clamp(p.x, r * k.z, r * k.w), r);
     return length(p) * sign(p.y);
 }
 // Star5 - exact
-float sdStar5(in vec2 p, in float r, in float rf)
+float sdStar5(float2 p, float r, float rf)
 {
-    const vec2 k1 = vec2(0.809016994375, -0.587785252292);
-    const vec2 k2 = vec2(-k1.x, k1.y);
+    const float2 k1 = float2(0.809016994375, -0.587785252292);
+    const float2 k2 = float2(-k1.x, k1.y);
     p.x = abs(p.x);
     p -= 2.0 * max(dot(k1, p), 0.0) * k1;
     p -= 2.0 * max(dot(k2, p), 0.0) * k2;
     p.x = abs(p.x);
     p.y -= r;
-    vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0, 1);
+    float2 ba = rf * float2(-k1.y, k1.x) - float2(0, 1);
     float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
     return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
 }
 // Regular Star- exact
-float sdStar(in vec2 p, in float r, in int n, in float m)
+float sdStar(float2 p, float r, int n, float m)
 {
     // next 4 lines can be precomputed for a given shape
     float an = 3.141593 / float(n);
     float en = 3.141593 / m; // m is between 2 and n
-    vec2 acs = vec2(cos(an), sin(an));
-    vec2 ecs = vec2(cos(en), sin(en)); // ecs=vec2(0,1) for regular polygon
+    float2 acs = float2(cos(an), sin(an));
+    float2 ecs = float2(cos(en), sin(en)); // ecs=vec2(0,1) for regular polygon
 
-    float bn = mod(atan(p.x, p.y), 2.0 * an) - an;
-    p = length(p) * vec2(cos(bn), abs(sin(bn)));
+    float bn = mod(atan2(p.x, p.y), 2.0 * an) - an;
+    p = length(p) * float2(cos(bn), abs(sin(bn)));
     p -= r * acs;
     p += ecs * clamp(-dot(p, ecs), 0.0, r * acs.y / ecs.y);
     return length(p) * sign(p.x);
 }
+
 // Pie - exact
-float sdPie(in vec2 p, in vec2 c, in float r)
+float sdPie(float2 p, float2 c, float r)
 {
     p.x = abs(p.x);
     float l = length(p) - r;
@@ -206,98 +206,102 @@ float sdPie(in vec2 p, in vec2 c, in float r)
     return max(l, m * sign(c.y * p.x - c.x * p.y));
 }
 // Arc - exact
-float sdArc(in vec2 p, in vec2 sca, in vec2 scb, in float ra, float rb)
+float sdArc(float2 p, float2 sca, float2 scb, float ra, float rb)
 {
-    p *= mat2(sca.x, sca.y, -sca.y, sca.x);
+    p = mul(float2x2(sca.x, sca.y, -sca.y, sca.x), p);
     p.x = abs(p.x);
     float k = (scb.y * p.x > scb.x * p.y) ? dot(p, scb) : length(p);
     return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
 }
 // Horseshoe - exact
-float sdHorseshoe(in vec2 p, in vec2 c, in float r, in vec2 w)
+float sdHorseshoe(float2 p, float2 c, float r, float2 w)
 {
     p.x = abs(p.x);
     float l = length(p);
-    p = mat2(-c.x, c.y, c.y, c.x) * p;
-    p = vec2((p.y > 0.0) ? p.x : l * sign(-c.x),
+    p = mul(float2x2(-c.x, c.y, c.y, c.x), p);
+    p = float2((p.y > 0.0) ? p.x : l * sign(-c.x),
              (p.x > 0.0) ? p.y : l);
-    p = vec2(p.x, abs(p.y - r)) - w;
+    p = float2(p.x, abs(p.y - r)) - w;
     return length(max(p, 0.0)) + min(0.0, max(p.x, p.y));
 }
 // Vesica - exact
-float sdVesica(vec2 p, float r, float d)
+float sdVesica(float2 p, float r, float d)
 {
     p = abs(p);
     float b = sqrt(r * r - d * d);
-    return ((p.y - b) * d > p.x * b) ? length(p - vec2(0.0, b))
-                             : length(p - vec2(-d, 0.0)) - r;
+    return ((p.y - b) * d > p.x * b) ? length(p - float2(0.0, b))
+                             : length(p - float2(-d, 0.0)) - r;
 }
 // Moon - exact
-float sdMoon(vec2 p, float d, float ra, float rb)
+float sdMoon(float2 p, float d, float ra, float rb)
 {
     p.y = abs(p.y);
     float a = (ra * ra - rb * rb + d * d) / (2.0 * d);
     float b = sqrt(max(ra * ra - a * a, 0.0));
     if (d * (p.x * b - p.y * a) > d * d * max(b - p.y, 0.0))
-        return length(p - vec2(a, b));
+        return length(p - float2(a, b));
     return max((length(p) - ra),
-               -(length(p - vec2(d, 0)) - rb));
+               -(length(p - float2(d, 0)) - rb));
 }
 // Simple Egg- exact
-float sdEgg(in vec2 p, in float ra, in float rb)
+float sdEgg(float2 p, float ra, float rb)
 {
     const float k = sqrt(3.0);
     p.x = abs(p.x);
     float r = ra - rb;
-    return ((p.y < 0.0) ? length(vec2(p.x, p.y)) - r :
-            (k * (p.x + r) < p.y) ? length(vec2(p.x, p.y - k * r)) :
-                              length(vec2(p.x + r, p.y)) - 2.0 * r) - rb;
+    return ((p.y < 0.0) ? length(float2(p.x, p.y)) - r :
+            (k * (p.x + r) < p.y) ? length(float2(p.x, p.y - k * r)) :
+                              length(float2(p.x + r, p.y)) - 2.0 * r) - rb;
 }
 // Heart - exact
-float sdHeart(in vec2 p)
+float sdHeart(float2 p)
 {
     p.x = abs(p.x);
 
     if (p.y + p.x > 1.0)
-        return sqrt(dot2(p - vec2(0.25, 0.75))) - sqrt(2.0) / 4.0;
-    return sqrt(min(dot2(p - vec2(0.00, 1.00)),
+        return sqrt(dot2(p - float2(0.25, 0.75))) - sqrt(2.0) / 4.0;
+    return sqrt(min(dot2(p - float2(0.00, 1.00)),
                     dot2(p - 0.5 * max(p.x + p.y, 0.0)))) * sign(p.x - p.y);
 }
 // Cross - exact exterior, boundinterior
-float sdCross(in vec2 p, in vec2 b, float r)
+float sdCross(float2 p, float2 b, float r)
 {
     p = abs(p);
     p = (p.y > p.x) ? p.yx : p.xy;
-    vec2 q = p - b;
+    float2 q = p - b;
     float k = max(q.y, q.x);
-    vec2 w = (k > 0.0) ? q : vec2(b.y - p.x, -k);
+    float2 w = (k > 0.0) ? q : float2(b.y - p.x, -k);
     return sign(k) * length(max(w, 0.0)) + r;
 }
 // Rounded X- exact
-float sdRoundedX(in vec2 p, in float w, in float r)
+float sdRoundedX(float2 p, float w, float r)
 {
     p = abs(p);
     return length(p - min(p.x + p.y, w) * 0.5) - r;
 }
 // Polygon - exact
-float sdPolygon(in vec2[ N] v, in vec2 p)
+float sdPolygon(float2 p, float2 size, float sides)
 {
-    float d = dot(p - v[0], p - v[0]);
+    float d = dot(p - size, p - size);
     float s = 1.0;
-    for (int i = 0, j = N - 1; i < N; j = i, i++)
+    float2 thisP, lastP = p + size;
+    for (int i = 0, j = sides - 1; i < sides; j = i, i++)
     {
-        vec2 e = v[j] - v[i];
-        vec2 w = p - v[i];
-        vec2 b = w - e * clamp(dot(w, e) / dot(e, e), 0.0, 1.0);
+        thisP = p + mul(size, rotMat((360 / sides)*i));
+        float2 e = lastP - thisP;
+        float2 w = p - thisP;
+        float2 b = w - e * clamp(dot(w, e) / dot(e, e), 0.0, 1.0);
         d = min(d, dot(b, b));
-        bvec3 c = bvec3(p.y >= v[i].y, p.y < v[j].y, e.x * w.y > e.y * w.x);
+        float3 c = float3(p.y >= thisP.y, p.y < lastP.y, e.x * w.y > e.y * w.x);
         if (all(c) || all(not(c)))
             s *= -1.0;
+        
+        lastP = thisP;
     }
     return s * sqrt(d);
 }
 // Ellipse - exact
-float sdEllipse(in vec2 p, in vec2 ab)
+float sdEllipse(float2 p, float2 ab)
 {
     p = abs(p);
     if (p.x > p.y)
@@ -335,11 +339,12 @@ float sdEllipse(in vec2 p, in vec2 ab)
         float rm = sqrt(rx * rx + ry * ry);
         co = (ry / sqrt(rm - rx) + 2.0 * g / rm - m) / 2.0;
     }
-    vec2 r = ab * vec2(co, sqrt(1.0 - co * co));
+    float2 r = ab * float2(co, sqrt(1.0 - co * co));
     return length(r - p) * sign(p.y - r.y);
 }
 // Parabola - exact
-float sdParabola(in vec2 pos, in float k)
+
+float sdParabola(float2 pos, float k)
 {
     pos.x = abs(pos.x);
     float ik = 1.0 / k;
@@ -349,11 +354,12 @@ float sdParabola(in vec2 pos, in float k)
     float r = sqrt(abs(h));
     float x = (h > 0.0) ?
         pow(q + r, 1.0 / 3.0) - pow(abs(q - r), 1.0 / 3.0) * sign(r - q) :
-        2.0 * cos(atan(r, q) / 3.0) * sqrt(p);
-    return length(pos - vec2(x, k * x * x)) * sign(pos.x - x);
+        2.0 * cos(atan2(r, q) / 3.0) * sqrt(p);
+    return length(pos - float2(x, k * x * x)) * sign(pos.x - x);
 }
+
 // Parabola Segment- exact
-float sdParabola(in vec2 pos, in float wi, in float he)
+float sdParabola(float2 pos, float wi, float he)
 {
     pos.x = abs(pos.x);
     float ik = wi * wi / he;
@@ -365,16 +371,16 @@ float sdParabola(in vec2 pos, in float wi, in float he)
         pow(q + r, 1.0 / 3.0) - pow(abs(q - r), 1.0 / 3.0) * sign(r - q) :
         2.0 * cos(atan(r / q) / 3.0) * sqrt(p);
     x = min(x, wi);
-    return length(pos - vec2(x, he - x * x / ik)) *
+    return length(pos - float2(x, he - x * x / ik)) *
            sign(ik * (pos.y - he) + pos.x * pos.x);
 }
 // Quadratic Bezier- exact
-float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
+float sdBezier(float2 pos, float2 A, float2 B, float2 C)
 {
-    vec2 a = B - A;
-    vec2 b = A - 2.0 * B + C;
-    vec2 c = a * 2.0;
-    vec2 d = A - pos;
+    float2 a = B - A;
+    float2 b = A - 2.0 * B + C;
+    float2 c = a * 2.0;
+    float2 d = A - pos;
     float kk = 1.0 / dot(b, b);
     float kx = kk * dot(a, b);
     float ky = kk * (2.0 * dot(a, a) + dot(d, b)) / 3.0;
@@ -387,8 +393,8 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
     if (h >= 0.0)
     {
         h = sqrt(h);
-        vec2 x = (vec2(h, -h) - q) / 2.0;
-        vec2 uv = sign(x) * pow(abs(x), vec2(1.0 / 3.0));
+        float2 x = (float2(h, -h) - q) / 2.0;
+        float2 uv = sign(x) * pow(abs(x), float2(1/3,1/3));
         float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
         res = dot2(d + (c + b * t) * t);
     }
@@ -398,7 +404,7 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
         float v = acos(q / (p * z * 2.0)) / 3.0;
         float m = cos(v);
         float n = sin(v) * 1.732050808;
-        vec3 t = clamp(vec3(m + m, -n - m, n - m) * z - kx, 0.0, 1.0);
+        float3 t = clamp(float3(m + m, -n - m, n - m) * z - kx, 0.0, 1.0);
         res = min(dot2(d + (c + b * t.x) * t.x),
                    dot2(d + (c + b * t.y) * t.y));
         // the third root cannot be the closest
@@ -406,7 +412,6 @@ float sdBezier(in vec2 pos, in vec2 A, in vec2 B, in vec2 C)
     }
     return sqrt(res);
 }
-*/
 /// SHAPES 3D
 // Sphere - exact
 struct SphereSDF : iSDF
@@ -495,6 +500,7 @@ struct BoxFrameSDF : iSDF
         return boxFrameSDF(p,size,frame);
     }
 };
+
 // Torus - exact
 class TorusSDF : iSDF
 {
@@ -546,7 +552,6 @@ struct LinkSDF : iSDF
         return linkSDF(p, length, radii);
     }
 };
-
 
 // Cylinder Capped - exact
 struct CylinderSDF : iSDF
@@ -621,7 +626,6 @@ struct CylinderRoundedSDF : iSDF
         return cylinderRoundedSDF(p, radius, cap, height);
     }
 };
-
 
 // Capsule Vertical  - exact
 struct CapsuleSDF : iSDF
@@ -985,7 +989,6 @@ struct HexPrismSDF : iSDF
     }
 };
 
-// UNTESTED 3D Shape Functions
 // Octahedron - exact
 struct OctahedronSDF : iSDF
 {
@@ -1119,9 +1122,6 @@ float smoothIntersectionSDF(float distA, float distB, float amount)
     float h = clamp(0.5 - 0.5 * (distB - distA) / amount, 0.0, 1.0);
     return lerp(distB, distA, h) + amount * h * (1.0 - h);
 }
-
-
-// scale
 float sdfOpScale(float3 p, float s, iSDF primitive)
 {
     return primitive.getDist(p / s) * s;
@@ -1133,94 +1133,84 @@ vec3 opTx(in vec3 p, in transform t, float primitive)
 {
     return primitive(invert(t) * p);
 }
-
-float opSymX( in vec3 p, in sdf3d primitive )
+*/
+float opSymX(float3 p, iSDF primitive)
 {
     p.x = abs(p.x);
-    return primitive(p);
+    return primitive.getDist(p);
 }
-float opSymXZ( in vec3 p, in sdf3d primitive )
+float opSymXZ(float3 p, iSDF primitive)
 {
     p.xz = abs(p.xz);
-    return primitive(p);
+    return primitive.getDist(p);
 }
-float opRep( in vec3 p, in vec3 c, in sdf3d primitive )
+float opRep(float3 p, float3 c, in iSDF primitive)
 {
-    vec3 q = mod(p+0.5*c,c)-0.5*c;
-    return primitive( q );
+    float3 q = mod(p+0.5*c,c)-0.5*c;
+    return primitive.getDist(q);
 }
-vec3 opRepLim( in vec3 p, in float c, in vec3 l, in sdf3d primitive )
+float opRepLim(float3 p, float c, float3 l, in iSDF primitive)
 {
-    vec3 q = p-c*clamp(round(p/c),-l,l);
-    return primitive( q );
+    float3 q = p - c * clamp(round(p / c), -l, l);
+    return primitive.getDist(q);
 }
-float opDisplace( in sdf3d primitive, in vec3 p )
+float opDisplace(iSDF primitive, float3 p, float3 d)
 {
-    float d1 = primitive(p);
-    float d2 = displacement(p);
-    return d1+d2;
+    
+    return primitive.getDist(p+d);
 }
-float opTwist( in sdf3d primitive, in vec3 p )
+float opTwist(iSDF primitive, float3 p)
 {
     const float k = 10.0; // or some other amount
     float c = cos(k*p.y);
     float s = sin(k*p.y);
-    mat2  m = mat2(c,-s,s,c);
-    vec3  q = vec3(m*p.xz,p.y);
-    return primitive(q);
+    float2x2 m = float2x2(c, -s, s, c);
+    float3 q = float3(mul(m, p.xz), p.y);
+    return primitive.getDist(q);
 }
-float opCheapBend( in sdf3d primitive, in vec3 p )
+float opCheapBend(iSDF primitive, float3 p)
 {
     const float k = 10.0; // or some other amount
     float c = cos(k*p.x);
     float s = sin(k*p.x);
-    mat2  m = mat2(c,-s,s,c);
-    vec3  q = vec3(m*p.xy,p.z);
-    return primitive(q);
+    float2x2 m = float2x2(c, -s, s, c);
+    float3 q = float3(mul(m, p.xy), p.z);
+    return primitive.getDist(q);
 }
-*/
-
 // should be used on one axis only
-/*
-float elongate1dSDF(float primitive, float3 p, float3 amount)
+float elongate1dSDF(iSDF primitive, float3 p, float3 amount)
 {
-    vec3 q = p - clamp(p, -h, h);
-    return primitive(q);
+    float3 q = p - clamp(p, -amount, amount);
+    return primitive.getDist(q);
 }
-*/
 // use when modify multple axis
-/*
-float elongate3dSDF(float primitive, float3 p, float3 amount)
+float elongate3dSDF(iSDF primitive, float3 p, float3 amount)
 {
-    vec3 q = abs(p) - h;
-    return primitive(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    float3 q = abs(p) - amount;
+    return primitive.getDist(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
-//
-float opRound(in sdf3d primitive, float rad)
+float opRound(iSDF primitive, float3 p, float rad)
 {
-    return primitive(p) - rad
+    return primitive.getDist(p) - rad;
 }
-
-
-float opExtrusion(in float3 p, float primitive, in float h)
+float opExtrusion(iSDF primitive, float3 p, float h)
 {
-    float d = primitive(p.xy)
-
-    vec2 w = vec2(d, abs(p.z) - h);
+    float d = primitive.getDist(p);
+    
+    float2 w = float2(d, abs(p.z) - h);
     return min(max(w.x, w.y), 0.0) + length(max(w, 0.0));
 }
-float opRevolution(in float3 p, float primitive, float o)
+float opRevolution(iSDF primitive, float3 p, float o)
 {
-    vec2 q = vec2(length(p.xz) - o, p.y);
-    return primitive(q)
+    float3 q = float3(length(p.xz) - o, p.y, p.z);
+    return primitive.getDist(q);
 
 }
-*/
-
 float onionSDF(float dist, float thickness)
 {
     return abs(dist) - thickness;
 }
+
 // RAY OPERATIONS
 float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir)
 {
@@ -1229,7 +1219,6 @@ float3 GetPoint(float3 rayOrigin, float distOrigin, float3 rayDir)
     //return
     return p;
 }
-
 float RayMarch(float3 rayOrigin, float3 rayDir, iSDF shape,float3 offset = 0, float surfDistance = 0.01f, int maxSteps = 100, int maxDistance = 1000)
 {            
     float distOrigin = 0;

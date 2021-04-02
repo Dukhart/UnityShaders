@@ -91,9 +91,8 @@ Shader "Unlit/RayMarch4"
 					 SphereSDF testSDF;
 					 testSDF.radius = _Scale;
 
-					 BoxSDF testSDF2;
-					 testSDF2.size = _Size;
-
+					 //BoxSDF testSDF2;
+					 //testSDF2.size = _Size;
 
 					 dist = RayMarch(rayOrigin, rayDir, testSDF);
 

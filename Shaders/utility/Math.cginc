@@ -13,6 +13,14 @@ float mod(float x, float y)
 {
     return x - y * floor(x / y);
 }
+float mod(float2 x, float2 y)
+{
+    return x - y * floor(x / y);
+}
+float mod(float3 x, float3 y)
+{
+    return x - y * floor(x / y);
+}
 // for 2D rotation matrix
 float2x2 rotMat(float angle)
 {
@@ -20,7 +28,12 @@ float2x2 rotMat(float angle)
     float c = cos(angle);
     return float2x2(c, -s, s, c);
 }
-
+float3 not(float3 v){
+    v.x = v.x == 0 ? 1 : 0;
+    v.y = v.y == 0 ? 1 : 0;
+    v.z = v.z == 0 ? 1 : 0;
+    return v;
+}
 
 float dot2(float2 v)
 {
